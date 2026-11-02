@@ -7,7 +7,7 @@ MATLAB code for the ELEGOO Smart Robot Car V4 used in ROBT 1010 Intro to Robotic
 ```
 basic_wireless_control/   Drive the car over Wi-Fi and stream the camera (start here)
 vslam_examples/           Simulator, student mapping template, visual SLAM demo
-tools/makeStudentKit.m    Builds the self-contained student zip (dist/, not in git)
+tools/                    makeStudentKit.m (student zip in dist/, not in git), build_guide_html.py
 ```
 
 | Folder | Contents |
@@ -17,7 +17,7 @@ tools/makeStudentKit.m    Builds the self-contained student zip (dist/, not in g
 
 ## Requirements
 
-- MATLAB R2024a or later (tested with R2026b)
+- MATLAB R2024a or later (tested with R2026b) on Windows or macOS. MATLAB Online runs the simulator only, because it cannot reach the car's local Wi-Fi.
 - Computer Vision Toolbox and Image Processing Toolbox (for `vslam_examples`)
 - For the real car: an ELEGOO Smart Robot Car V4 with the course's custom firmware. `ElegooRobotCar` sends JSON commands over TCP port 100, and the stock firmware does not answer them. The firmware is not in this repository.
 
@@ -45,7 +45,7 @@ cd tools
 makeStudentKit        % -> dist/ElegooMappingKit.zip
 ```
 
-The kit has `elegooMappingTemplate.m`, `ElegooRobotCar.m`, `ElegooSimCar.m`, `simAssets/`, `calibrateElegooCamera.m` and a `README.txt` in ASD-STE100 Simplified Technical English. Students run each task in the simulator first, then on the real car.
+The kit has `elegooMappingTemplate.m`, `ElegooRobotCar.m`, `ElegooSimCar.m`, `simAssets/`, `calibrateElegooCamera.m`, the student guide (`STUDENT_GUIDE.html` with embedded figures, `STUDENT_GUIDE.md`, `docs/images/`) and a short `README.txt`, all in ASD-STE100 Simplified Technical English. Students run each task in the simulator first, then on the real car. After a change of `STUDENT_GUIDE.md`, run `python tools/build_guide_html.py` (needs `pip install markdown`) before `makeStudentKit`. See the TA checklist in [vslam_examples/README.md](vslam_examples/README.md) before the first real-car session.
 
 ## Safety
 
