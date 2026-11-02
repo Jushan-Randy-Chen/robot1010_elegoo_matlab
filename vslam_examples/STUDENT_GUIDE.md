@@ -324,6 +324,10 @@ The camera measures each turn: when the car turns, the corners in the photo move
 
 One camera cannot measure size. In one photo, a small object near the camera and a large object far from the camera can look the same. Thus the map has no scale at first ("SLAM units"). At the end, the sonar measures the scale.
 
+This diagram shows how visual SLAM works at each step. Blue = localization (where am I?). Green = mapping (what is around me?). Yellow = what SLAM does when it cannot find the position.
+
+![How visual SLAM works](docs/images/vslam_how_it_works.png)
+
 **What the car does:**
 
 1. **Start the map:** 4 steps forward, then 4 steps back, again and again. The camera must see the room from two positions to measure depth. In the simulator, this uses 200 to 250 photos.
