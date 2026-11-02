@@ -1,0 +1,12 @@
+# Normalize text files to LF in the repository
+* text=auto
+*.m   text diff=matlab
+*.txt text
+*.md  text
+
+# Binary files
+*.jpg  binary
+*.png  binary
+*.mat  binary
+*.mp4  binary
+*.zip  binary

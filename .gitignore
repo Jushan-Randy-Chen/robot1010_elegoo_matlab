@@ -1,0 +1,19 @@
+# MATLAB
+*.asv
+*.m~
+*.mex*
+slprj/
+codegen/
+.DS_Store
+Thumbs.db
+
+# Built student kit (attach the zip to a GitHub release instead)
+dist/
+
+# Per-car files made when you run the code
+elegooCameraIntrinsics.mat
+calibrationImages/
+checkerboard_print.png
+vslamRun_*/
+test.gif
+test.mp4
