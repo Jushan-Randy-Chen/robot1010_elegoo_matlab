@@ -1,12 +1,15 @@
 function intrinsics = calibrateElegooCamera(squareSizeMm, host, flipImage)
 % CALIBRATEELEGOOCAMERA  Measure the focal length and the lens distortion of
-% the ESP32 camera. Task 5 of elegooMappingTemplate.m and visualSlamDemo.m
-% use these values to change pixels into 3-D directions. Do this procedure one time for each car.
+% the ESP32 camera. Task 5 of elegooMappingTemplate.m uses these values to
+% change pixels into 3-D directions. (The TA demo visualSlamDemo.m also uses them.) Do this procedure one time for each car.
 %
 % PROCEDURE
 %   1. Make a checkerboard. Type: calibrateElegooCamera("print")
-%      This makes the file checkerboard_print.png (7 x 10 squares).
-%   2. Print the file at 100% scale. Attach it to a flat, stiff board.
+%      This makes the file checkerboard_print.png (7 x 10 squares) in the
+%      folder of this file.
+%   2. Print the file on one sheet of paper. Select "Shrink to fit"
+%      (Windows) or "Scale to Fit" (Mac). Do not select "Fill". Attach the
+%      paper to a flat, stiff board.
 %   3. Measure one square with a ruler (mm).
 %   4. Connect the computer to the Wi-Fi network of the car.
 %   5. Type: calibrateElegooCamera(squareSizeMm)
@@ -15,14 +18,17 @@ function intrinsics = calibrateElegooCamera(squareSizeMm, host, flipImage)
 %      Then also set S.flipImage = true in elegooMappingTemplate.m.
 %   7. Hold the board 20 cm to 60 cm in front of the car. Move and tilt the
 %      board. Put it in all areas of the photo, also in the corners.
-%   8. Push SPACE to keep a photo. Keep a photo only when the corners show
-%      in green. Keep 15 to 20 photos.
+%   8. Click the figure window. The keys work only when this window is
+%      selected. Push SPACE to keep a photo. Keep a photo only when the
+%      corners show in green. Keep 15 to 20 photos.
 %   9. Push C to calibrate. The function saves the result in
-%      elegooCameraIntrinsics.mat in the current folder. It saves the photos
-%      in the calibrationImages folder.
-%  10. Keep elegooCameraIntrinsics.mat in the folder of elegooMappingTemplate.m.
+%      elegooCameraIntrinsics.mat in the folder of this file. It saves the
+%      photos in the calibrationImages folder in the same folder.
+%  10. Do not move elegooCameraIntrinsics.mat. elegooMappingTemplate.m finds
+%      it in the same folder.
 %
-% NOTE: Calibrate at the photo size that task 5 uses (640 x 480 or larger).
+% NOTE: Calibrate at the photo size that task 5 uses. The template shows the
+%       photo size when it connects ("The camera gives photos of ...").
 % NOTE: Push Q to stop without a calibration.
 
 if nargin >= 1 && (isstring(squareSizeMm) || ischar(squareSizeMm)) && squareSizeMm == "print"
@@ -31,7 +37,7 @@ if nargin >= 1 && (isstring(squareSizeMm) || ischar(squareSizeMm)) && squareSize
 end
 if nargin < 1 || isempty(squareSizeMm)
     error("calibrateElegooCamera:SquareSize", ...
-        "Give the printed square size in mm, e.g. calibrateElegooCamera(25).");
+        "Give the size of one printed square in mm. Example: calibrateElegooCamera(25).");
 end
 if nargin < 2 || isempty(host), host = "192.168.4.1"; end
 if nargin < 3 || isempty(flipImage), flipImage = false; end
@@ -47,7 +53,9 @@ robot.setWatchdog(1000);
 robot.pan(90);
 cleanupObj = onCleanup(@() safeClose(robot));
 
-outDir = "calibrationImages";
+% Save the results in the folder of this file (not the MATLAB current folder).
+here = fileparts(mfilename("fullpath"));
+outDir = fullfile(here, "calibrationImages");
 if ~isfolder(outDir), mkdir(outDir); end
 
 fig = figure("Name", "Elegoo camera calibration", "Color", "w");
@@ -73,7 +81,7 @@ while isvalid(fig)
         plot(ax, points(:, 1), points(:, 2), "g+", "MarkerSize", 6, "LineWidth", 1);
     end
     hold(ax, "off");
-    title(ax, sprintf("%dx%d  |  %d photos kept  |  SPACE = keep  F = flip  C = calibrate  Q = quit", ...
+    title(ax, sprintf("%dx%d  |  %d photos kept  |  Click this window, then: SPACE = keep  F = flip  C = calibrate  Q = quit", ...
         size(frame, 2), size(frame, 1), numel(images)));
     drawnow;
 
@@ -88,23 +96,24 @@ while isvalid(fig)
                 imwrite(frame, fullfile(outDir, sprintf("calib_%02d.png", numel(images))));
                 fprintf("Kept photo %d\n", numel(images));
             else
-                fprintf("Checkerboard not found in this frame; not kept.\n");
+                fprintf("The computer did not find the checkerboard in this photo. The photo is not kept.\n");
             end
         case "f"
             if ~isempty(images)
-                fprintf("Flip before keeping photos; restart to change it now.\n");
+                fprintf("Push F before you keep a photo. To change it now, start the function again.\n");
             else
                 flipImage = ~flipImage;
                 fprintf("flipImage = %d\n", flipImage);
             end
         case "c"
             if numel(images) < 8
-                fprintf("Keep at least 8 photos first (15-20 is better).\n");
+                fprintf("Keep 8 photos or more first (15 to 20 photos is better).\n");
                 continue
             end
             intrinsics = runCalibration(imagePoints, boardSize, squareSizeMm, size(images{1}, 1:2));
-            save("elegooCameraIntrinsics.mat", "intrinsics", "flipImage");
-            fprintf("Saved elegooCameraIntrinsics.mat\n");
+            calibFile = fullfile(here, "elegooCameraIntrinsics.mat");
+            save(calibFile, "intrinsics", "flipImage");
+            fprintf("Saved %s\n", calibFile);
             break
         case "q"
             break
@@ -147,8 +156,9 @@ cols = 10;
 [c, r] = meshgrid(0:cols*square-1, 0:rows*square-1);
 board = mod(floor(r / square) + floor(c / square), 2) == 1;
 board = padarray(board, [square square], true);   % white margin
-imwrite(board, "checkerboard_print.png");
-fprintf("Wrote checkerboard_print.png. Print it at 100%% and measure one square in mm.\n");
+file = fullfile(fileparts(mfilename("fullpath")), "checkerboard_print.png");
+imwrite(board, file);
+fprintf("Made %s. Print it on one sheet of paper. Measure one square in mm.\n", file);
 end
 
 function safeClose(robot)

@@ -475,7 +475,7 @@ end
 % Settings (change them here, or with Config=struct(...))
 % =====================================================================
 function cfg = defaultConfig()
-cfg.intrinsicsFile = "elegooCameraIntrinsics.mat";   % from calibrateElegooCamera
+cfg.intrinsicsFile = fullfile(fileparts(mfilename("fullpath")), "elegooCameraIntrinsics.mat");   % from calibrateElegooCamera
 cfg.guessFovDeg = 60;          % lens guess if there is no calibration file
 cfg.flipImage = false;         % taken from the calibration file
 cfg.workSize = [480 640];      % photos are resized to this for SLAM

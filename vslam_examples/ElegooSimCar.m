@@ -46,6 +46,7 @@ classdef ElegooSimCar < handle
         LastCommand
         WatchdogSec = Inf
         PanDeg = 90
+        WarnedMissingAsset = false
     end
 
     methods
@@ -462,7 +463,12 @@ classdef ElegooSimCar < handle
             if isfile(file)
                 img = imread(file);
             else
-                warning("ElegooSimCar:MissingAsset", "Missing %s; using plain gray.", file);
+                if ~obj.WarnedMissingAsset      % One warning, not one for each file
+                    warning("ElegooSimCar:MissingAsset", ...
+                        "Texture files are missing in %s. The room uses plain gray. Camera tasks can fail.", ...
+                        obj.AssetDir);
+                    obj.WarnedMissingAsset = true;
+                end
                 img = ElegooSimCar.solid([170 170 170], 10);
             end
         end
