@@ -21,6 +21,9 @@ You do five tasks. Each task adds one new idea to the task before it.
   simAssets\                Photos of the surfaces in the simulated room.
   calibrateElegooCamera.m   Camera calibration for task 5 on the real car.
   README.txt                This text.
+  STUDENT_GUIDE.md          The full guide: each task, each figure and how to
+                            read it, the expected results and a results table.
+  docs\images\               Example figures for the guide (from the simulator).
 
 Do not move the files out of this folder. Do not change the names of the
 files. The template must find the other files in the same folder.
@@ -120,6 +123,8 @@ HOW THE TASKS ARE DIFFERENT
      e. Do TASK = 3, 4 and 5.
   8. Compare the results of the simulator and the real car. Answer the
      questions in each task section of the template.
+  9. Read STUDENT_GUIDE.md. It shows each figure and tells you how to read
+     it. Each figure has a label, for example "Task 3, Figure 3.1".
 
 CAUTION: KEEP THE CAR AWAY FROM STAIRS AND TABLE EDGES.
          THE CAR CAN FALL AND BREAK.

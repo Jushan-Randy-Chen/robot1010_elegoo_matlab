@@ -9,7 +9,9 @@ Mapping and localization with the car's own sensors: ultrasonic sensor, ESP32 ca
 | `ElegooSimCar.m` | Simulator: a furnished 5 m x 4 m living room. It has the same commands as `ElegooRobotCar`. |
 | `simAssets/` | Room textures for the simulator (AWS RoboMaker Small House World, MIT-0). |
 | `calibrateElegooCamera.m` | One-time checkerboard calibration of the ESP32 camera. |
-| `STUDENT_README.txt` | Student instructions. In the student kit it becomes `README.txt`. |
+| `STUDENT_GUIDE.md` | **Student guide:** each task, each labeled figure with an example image and how to read it, the expected results, a results table and a glossary. |
+| `STUDENT_README.txt` | Short student instructions. In the student kit it becomes `README.txt`. |
+| `docs/images/` | Example figures from the simulator, used by the guide. |
 
 ## The five tasks in `elegooMappingTemplate.m`
 
@@ -20,6 +22,8 @@ Mapping and localization with the car's own sensors: ultrasonic sensor, ESP32 ca
 | 3. Sonar map from one spot | None (servo scan) | Known | Sonar occupancy grid |
 | 4. Square + dead reckoning | Square, camera-feedback turns | Step count + camera visual odometry | Sonar occupancy grid |
 | 5. Visual SLAM | Map-start sweep, ~1.25 circles, scale drive | `monovslam` (loop closure) | Camera map points, sonar scale |
+
+Every figure has a label such as **Task 3, Figure 3.1**, and its panels are lettered (a), (b) and so on. The guide explains each one: [STUDENT_GUIDE.md](STUDENT_GUIDE.md).
 
 ## Quick start
 
@@ -38,6 +42,6 @@ The vSLAM files find `ElegooRobotCar.m` in `../basic_wireless_control` automatic
 
 - Task 2: 5.1 cm per step and 17.2° per turn step (the simulator's true value is about 17.5°).
 - Task 4: the calculated path stays within about 7 cm of the true path.
-- Task 5: 63–67 key frames, and the loop closes. The path is within about 26 cm RMS of the truth, and the sonar scale is 10–15% short.
+- Task 5: the map starts after 220–250 photos. Complete runs have 63–67 key frames, the loop closes, the path is 25–35 cm RMS from the truth, and the sonar scale error is −15% to +20% (it changes each run). Two of six runs stopped early with lost tracking before the "lost again here: drive on" rule was restored; the two runs after it completed.
 
 These results are from the simulator only. The code is not yet tested on the real car.

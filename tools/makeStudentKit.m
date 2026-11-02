@@ -22,6 +22,8 @@ for name = ["elegooMappingTemplate.m", "ElegooSimCar.m", "calibrateElegooCamera.
 end
 copyfile(fullfile(vslam, "simAssets"), fullfile(kit, "simAssets"));
 copyfile(fullfile(vslam, "STUDENT_README.txt"), fullfile(kit, "README.txt"));
+copyfile(fullfile(vslam, "STUDENT_GUIDE.md"), kit);
+copyfile(fullfile(vslam, "docs"), fullfile(kit, "docs"));
 
 zipFile = fullfile(dist, "ElegooMappingKit.zip");
 if isfile(zipFile)
