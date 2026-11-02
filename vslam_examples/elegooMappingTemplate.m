@@ -55,6 +55,8 @@
 %      c. Click Run (or push F5).
 %   7. Compare the results of the simulator and the real car.
 %
+% NOTE: STUDENT_GUIDE.md shows each figure (for example "Task 3, Figure 3.1")
+%       and tells you how to read it.
 % NOTE: The simulator car and the real car are not the same. Do task 2 on
 %       the real car before task 3 to task 5 on the real car. Write the
 %       results of the real car in SETTINGS.
@@ -106,6 +108,10 @@ S.flipImage = false;            % true if the photo is upside down
 %% CONNECT TO THE CAR AND DO THE TASK
 % The results go into the variable "result" in the Workspace.
 clear car                       % Close the old connection
+TASK_NAMES = ["Read the sensors", "Calibrate the motion", "Make a sonar map from one position", ...
+    "Move in a square, calculate the position and make a map", "Make a camera map with visual SLAM"];
+assert(any(TASK == 1:5), "Set TASK to 1, 2, 3, 4 or 5.");
+fprintf("\n========== TASK %d: %s ==========\n", TASK, upper(TASK_NAMES(TASK)));
 [car, S] = connectCar(USE_SIMULATOR, S, TASK);
 try
     switch TASK
@@ -121,7 +127,8 @@ catch problem
     rethrow(problem);
 end
 car.stop();
-fprintf("Task %d is complete. The results are in the variable ""result"".\n", TASK);
+fprintf("Task %d is complete. Look at the figures (Task %d, Figure %d.1 ...).\n", TASK, TASK, TASK);
+fprintf("The results are in the variable ""result"" in the Workspace.\n");
 
 
 %% ========================================================================
@@ -152,8 +159,8 @@ function result = task1_readSensors(car, S)
 %   f. The car turned for 0.8 seconds. Measure the angle that the car turned.
 %      Compare it with the gyro angle. What are the units of the gyro?
 
-figure("Name", "Task 1: sensors", "Position", [80 80 1100 750]);
-tiledlayout(2, 2);
+% FIGURE 1.1: four panels, (a) to (d)
+labeledFigure(car, 1, 1, "Sensor readings", [2 2], [80 80 1100 750]);
 
 % 1. Sonar for 10 seconds
 ax = nexttile;
@@ -162,7 +169,7 @@ grid(ax, "on");
 xlabel(ax, "time (s)");
 ylabel(ax, "distance (cm)");
 ylim(ax, [0 160]);
-title(ax, "Sonar: move your hand in front of the car");
+title(ax, "(a) Sonar distance. Move your hand in front of the car.");
 sonarTime = [];
 sonarCm = [];
 timer = tic;
@@ -182,7 +189,7 @@ ax = nexttile;
 imshow(photo, "Parent", ax);
 hold(ax, "on");
 plot(ax, strongest.Location(:, 1), strongest.Location(:, 2), "g+");
-title(ax, sprintf("Camera: %d corners found (200 shown)", corners.Count));
+title(ax, sprintf("(b) Camera photo: %d corners found (green +, 200 strongest)", corners.Count));
 
 % 3. Gyro: turn left for 0.8 seconds and record the turn rate
 gyroTime = [];
@@ -201,7 +208,7 @@ plot(ax, gyroTime, gyroZ, "r.-");
 grid(ax, "on");
 xlabel(ax, "time (s)");
 ylabel(ax, "gyro z (raw units)");
-title(ax, "Gyro: turn rate");
+title(ax, "(c) Gyro: turn rate while the car turns left");
 
 % 4. Angle = sum of (turn rate x time)
 gyroAngle = [0 cumsum(gyroZ(2:end) .* diff(gyroTime))];
@@ -210,7 +217,7 @@ plot(ax, gyroTime, gyroAngle, "m.-");
 grid(ax, "on");
 xlabel(ax, "time (s)");
 ylabel(ax, "angle (raw units x s)");
-title(ax, sprintf("Gyro: total angle = %.0f", gyroAngle(end)));
+title(ax, sprintf("(d) Gyro angle = sum of (rate x time) = %.0f", gyroAngle(end)));
 
 result = struct("sonarTime", sonarTime, "sonarCm", sonarCm, "photo", photo, ...
     "numCorners", corners.Count, "gyroTime", gyroTime, "gyroZ", gyroZ, "gyroAngle", gyroAngle);
@@ -307,21 +314,27 @@ else
 end
 fprintf("One turn step = %.1f degrees.\n", degPerTurn);
 
-figure("Name", "Task 2: calibration", "Position", [80 80 1000 400]);
-tiledlayout(1, 2);
-nexttile;
-plot(1:k, sumDeg, "bo-");
-yline(360, "k--");
-grid on
-xlabel("turn step");
-ylabel("sum of camera angles (deg)");
-title("Turn angle from the camera");
-nexttile;
-plot(1:k, matches, "bo-", N, matches(N), "r*", "MarkerSize", 12);
-grid on
-xlabel("turn step");
-ylabel("corners that match the first photo");
-title(sprintf("One turn step = %.1f deg. One forward step = %.1f cm.", degPerTurn, cmPerStep));
+% FIGURE 2.1: two panels, (a) and (b)
+tl = labeledFigure(car, 2, 1, "Turn calibration with the camera", [1 2], [80 80 1100 450]);
+subtitle(tl, string(tl.Subtitle.String) + sprintf(". Results: one forward step = %.1f cm, one turn step = %.1f deg.", ...
+    cmPerStep, degPerTurn));
+ax = nexttile;
+plot(ax, 1:k, sumDeg, "bo-", "DisplayName", "sum of the camera turn angles");
+yline(ax, 360, "k--", "DisplayName", "360 deg (one full turn)");
+grid(ax, "on");
+xlabel(ax, "turn step");
+ylabel(ax, "sum of camera angles (deg)");
+legend(ax, "Location", "northwest");
+title(ax, "(a) Turn angle from the camera");
+ax = nexttile;
+plot(ax, 1:k, matches, "bo-", "DisplayName", "corners that match the first photo");
+hold(ax, "on");
+plot(ax, N, matches(N), "r*", "MarkerSize", 12, "DisplayName", sprintf("first view again: step %d", N));
+grid(ax, "on");
+xlabel(ax, "turn step");
+ylabel(ax, "number of matched corners");
+legend(ax, "Location", "northwest");
+title(ax, "(b) Matches with the first photo");
 
 fprintf("\nWrite these values in SETTINGS:\n");
 fprintf("  S.cmPerStep  = %.1f;\n", cmPerStep);
@@ -384,24 +397,28 @@ for i = 1:numel(angles)
     map = addSonarRay(map, S.sensorAheadCm, 0, angles(i), ranges(i), S);
 end
 
-figure("Name", "Task 3: sonar map", "Position", [80 80 1100 480]);
-tiledlayout(1, 2);
+% FIGURE 3.1: two panels, (a) and (b)
+labeledFigure(car, 3, 1, "Sonar map from one position", [1 2], [80 80 1250 520]);
 ax = nexttile;
-plot(ax, x(isEcho), y(isEcho), "r.", "MarkerSize", 15);
+h = plot(ax, x(isEcho), y(isEcho), "r.", "MarkerSize", 15, "DisplayName", "sonar echo (object)");
 hold(ax, "on");
-plot(ax, 0, 0, "b^", "MarkerFaceColor", "b");
-drawSimRoom(car, truePose(car), ax);
+h(2) = plot(ax, 0, 0, "b^", "MarkerFaceColor", "b", "DisplayName", "car (points to +x)");
+h = [h, drawSimRoom(car, truePose(car), ax)];
 axis(ax, "equal");
 grid(ax, "on");
 xlabel(ax, "x = forward (cm)");
 ylabel(ax, "y = left (cm)");
-title(ax, "Scan points (red) and car (blue)");
+legend(ax, h, "Location", "southoutside", "NumColumns", 3);
+title(ax, "(a) Scan points");
 ax = nexttile;
 showMap(map, ax);
 hold(ax, "on");
-plot(ax, 0, 0, "b^", "MarkerFaceColor", "b");
-drawSimRoom(car, truePose(car), ax);
-title(ax, "Occupancy grid: white free, black occupied, gray unknown");
+h = gridLegendItems(ax);
+h(end+1) = plot(ax, 0, 0, "b^", "MarkerFaceColor", "b", "DisplayName", "car (points to +x)");
+h = [h, drawSimRoom(car, truePose(car), ax)];
+axis(ax, mapLimits(map));               % Show only the area of the grid
+legend(ax, h, "Location", "southoutside", "NumColumns", 3);
+title(ax, "(b) Occupancy grid");
 
 result = struct("panDeg", pans, "angleDeg", angles, "rangeCm", ranges, "map", map);
 end
@@ -491,15 +508,22 @@ for corner = 1:4
         corner, x, y, heading);
 end
 
-figure("Name", "Task 4: map from the calculated path");
-showMap(map, gca);
-hold on
-plot(estimatedPath(:, 1), estimatedPath(:, 2), "b.-", "LineWidth", 1.5);
-plot(truePath(:, 1), truePath(:, 2), "m--", "LineWidth", 1);
-plot(0, 0, "go", "MarkerFaceColor", "g");
-drawSimRoom(car, start, gca);
-legend("calculated path", "true path (simulator only)", "start", "Location", "bestoutside");
-title("Sonar map at the calculated poses");
+% FIGURE 4.1: one panel
+labeledFigure(car, 4, 1, "Square path and sonar map", [1 1], [80 80 900 750]);
+ax = nexttile;
+showMap(map, ax);
+hold(ax, "on");
+h = plot(ax, estimatedPath(:, 1), estimatedPath(:, 2), "b.-", "LineWidth", 1.5, ...
+    "DisplayName", "calculated path (dead reckoning)");
+if isa(car, "ElegooSimCar")
+    h(end+1) = plot(ax, truePath(:, 1), truePath(:, 2), "m--", "LineWidth", 1, ...
+        "DisplayName", "true path (simulator only)");
+end
+h(end+1) = plot(ax, 0, 0, "go", "MarkerFaceColor", "g", "DisplayName", "start");
+h = [h, gridLegendItems(ax), drawSimRoom(car, start, ax)];
+axis(ax, mapLimits(map));               % Show only the area of the grid
+legend(ax, h, "Location", "eastoutside");
+title(ax, "Sonar map at the calculated poses");
 
 result = struct("estimatedPath", estimatedPath, "truePath", truePath, ...
     "endHeadingDeg", heading, "map", map);
@@ -537,8 +561,10 @@ function result = task5_visualSlam(car, S)
 %        c. It moves back from an object and then moves to the object.
 %           The sonar measures the scale.
 %   4. Sometimes SLAM cannot find the position of the car (status
-%      "TrackingLost"). Then the car moves back along its path until SLAM
-%      finds the position again.
+%      "TrackingLost"). The first time, the car moves back along its path
+%      until SLAM finds the position again. If SLAM loses the position
+%      again on the circle, the car continues on the circle past that
+%      place. Then SLAM can identify a known place later.
 %
 % QUESTIONS
 %   a. Compare the SLAM path with the path of task 4. Which path returns
@@ -580,35 +606,56 @@ statuses = strings(maxPhotos, 1);% SLAM status at each photo
 trueCamera = nan(maxPhotos, 3); % Simulator only: true camera pose
 resetAt = 0;                    % Photo number of the last SLAM restart
 lostCount = 0;                  % Number of photos in sequence with no position
-backStepsLeft = 8;              % Maximum number of steps back on the path
+wasLost = false;                % true while SLAM cannot find the position
+foundAgain = 0;                 % Number of times that SLAM found the position again
+backStepsLeft = 8;              % Steps back on the path that are permitted for one loss
+skipStepsLeft = 25;             % Circle steps without a position that are permitted for one loss
 history = zeros(0, 3);          % Steps after the map started
 heading = NaN;                  % Camera heading from SLAM (degrees)
 turned = 0;                     % Angle of the circle until now (degrees)
 scaleSteps = 0;
 backedUp = false;
 
-figure("Name", "Task 5: visual SLAM", "Position", [80 80 1100 450]);
-tiledlayout(1, 2);
+% FIGURE 5.1: live view during the run, two panels, (a) and (b)
+labeledFigure(car, 5, 1, "Visual SLAM live view (changes during the run)", [1 2], [80 80 1250 520]);
 axCam = nexttile;
 axTop = nexttile;
 
 for k = 1:maxPhotos
     % 3. Select the next step
     isBackStep = false;
-    if phase ~= "start" && lostCount >= 2
-        % SLAM cannot find the position. Move back along the path to the
-        % last place where SLAM found the position.
-        if lostCount > 30
-            disp("SLAM cannot find the position of the car. The car stops.");
+    if wasLost && lostCount == 0
+        % SLAM found the position again. Each new loss gets a new budget.
+        wasLost = false;
+        foundAgain = foundAgain + 1;
+        backStepsLeft = 8;
+        skipStepsLeft = 25;
+        fprintf("SLAM found the position again (%d time(s)).\n", foundAgain);
+        if foundAgain > 6
+            disp("SLAM loses the position again and again. The car stops.");
             break
         end
-        if backStepsLeft > 0 && ~isempty(history)
+    end
+    if phase ~= "start" && lostCount >= 2
+        % SLAM cannot find the position of the car.
+        %  - The first time: move back along the path to the last place
+        %    where SLAM found the position.
+        %  - If SLAM loses the position again on the circle, this place has
+        %    too few corners. Continue on the circle past this place. Later,
+        %    SLAM can identify a known place.
+        wasLost = true;
+        driveOn = phase == "circle" && (foundAgain >= 1 || backStepsLeft == 0 || isempty(history));
+        if ~driveOn && backStepsLeft > 0 && ~isempty(history)
             move = [-history(end, 1:2) history(end, 3)];   % Do the last step in the opposite direction
             history(end, :) = [];
             backStepsLeft = backStepsLeft - 1;
             isBackStep = true;
+        elseif driveOn && skipStepsLeft > 0
+            move = S.circle;
+            skipStepsLeft = skipStepsLeft - 1;
         else
-            move = S.circle;            % Continue. Later, SLAM can identify a known place.
+            disp("SLAM cannot find the position of the car. The car stops.");
+            break
         end
     elseif phase == "start"
         % 4 steps forward, then 4 steps back. Change the view after 24 photos.
@@ -688,10 +735,15 @@ for k = 1:maxPhotos
         % Top view: key frames (blue) and map points (gray)
         C = vertcat(camPoses.Translation);
         X = mapPoints(vslam);
-        plot(axTop, X(:, 3), -X(:, 1), ".", "Color", [0.6 0.6 0.6], "MarkerSize", 3);
+        plot(axTop, X(:, 3), -X(:, 1), ".", "Color", [0.6 0.6 0.6], "MarkerSize", 3, ...
+            "DisplayName", "map points (corners in 3-D)");
         hold(axTop, "on");
-        plot(axTop, C(:, 3), -C(:, 1), "b.-");
+        plot(axTop, C(:, 3), -C(:, 1), "b.-", "DisplayName", "key frames (camera path)");
         hold(axTop, "off");
+        grid(axTop, "on");
+        xlabel(axTop, "forward (SLAM units)");
+        ylabel(axTop, "left (SLAM units)");
+        legend(axTop, "Location", "southoutside", "NumColumns", 2);
         % Some map points have large errors and are very far away. Set the axis
         % limits from the middle 96% of the points and the key frames.
         P = sort([X(:, 3), -X(:, 1); C(:, 3), -C(:, 1)]);
@@ -701,10 +753,11 @@ for k = 1:maxPhotos
         xlim(axTop, [lo(1) - pad, hi(1) + pad]);
         ylim(axTop, [lo(2) - pad, hi(2) + pad]);
         daspect(axTop, [1 1 1]);
-        title(axTop, sprintf("%d key frames, %d map points (SLAM units)", size(C, 1), size(X, 1)));
+        title(axTop, sprintf("(b) SLAM top view: %d key frames, %d map points (no scale yet)", ...
+            size(C, 1), size(X, 1)));
     end
     imshow(photo, "Parent", axCam);
-    title(axCam, sprintf("Photo %d | %s | %s | circle %.0f deg", k, phase, status, turned));
+    title(axCam, sprintf("(a) Photo %d | phase: %s | SLAM: %s | circle: %.0f deg", k, phase, status, turned));
     drawnow limitrate
 end
 car.stop();
@@ -736,33 +789,42 @@ if isnan(cmPerUnit)
 end
 fprintf("Map: %d key frames. Scale: %.0f cm for each SLAM unit.\n", numel(camPoses), cmPerUnit);
 
-% 8. Top view of the map in cm
-pathCm = [C(:, 3), -C(:, 1)] * cmPerUnit;       % forward = camera z, left = -camera x
-X = mapPoints(vslam) * cmPerUnit;
+% 8. Top view of the map in cm. Show the map in the frame of the first key
+%    frame: the map starts at (0, 0) and the car points forward (+x).
+R1 = camPoses(1).R;
+t1 = camPoses(1).Translation;
+toFirstFrame = @(P) (P - t1) * R1;              % World points to the first camera frame
+C1 = toFirstFrame(C);
+pathCm = [C1(:, 3), -C1(:, 1)] * cmPerUnit;     % forward = camera z, left = -camera x
+X = toFirstFrame(mapPoints(vslam)) * cmPerUnit;
 heightCm = S.cameraHeightCm - X(:, 2);          % Camera y points down
 isObstacle = heightCm > 4 & heightCm < 80;      % Not the floor, not the ceiling
-figure("Name", "Task 5: SLAM map");
-plot(X(isObstacle, 3), -X(isObstacle, 1), "r.", "MarkerSize", 4);
-hold on
-plot(pathCm(:, 1), pathCm(:, 2), "b-", "LineWidth", 2);
-plot(0, 0, "go", "MarkerFaceColor", "g");
+% FIGURE 5.2: the final map, one panel
+tl = labeledFigure(car, 5, 2, "Visual SLAM map (final)", [1 1], [80 80 1000 750]);
+subtitle(tl, string(tl.Subtitle.String) + sprintf(". %d key frames. Scale: %.0f cm for each SLAM unit.", ...
+    numel(camPoses), cmPerUnit));
+ax = nexttile;
+h = plot(ax, X(isObstacle, 3), -X(isObstacle, 1), "r.", "MarkerSize", 4, ...
+    "DisplayName", "map points 4 cm to 80 cm above the floor (objects)");
+hold(ax, "on");
+h(2) = plot(ax, pathCm(:, 1), pathCm(:, 2), "b-", "LineWidth", 2, "DisplayName", "SLAM path (key frames)");
+h(3) = plot(ax, 0, 0, "go", "MarkerFaceColor", "g", "DisplayName", "start of the map");
 truePathCm = [];
 if isa(car, "ElegooSimCar")
     first = trueCamera(keyPhoto(1), :);
     first = [100 * first(1:2), rad2deg(first(3))];
     truePathCm = toStartFrame(100 * trueCamera(keyPhoto, 1:2), first);
-    plot(truePathCm(:, 1), truePathCm(:, 2), "k--");
-    drawSimRoom(car, first, gca);
+    h(4) = plot(ax, truePathCm(:, 1), truePathCm(:, 2), "k--", "DisplayName", "true path (simulator only)");
+    h = [h, drawSimRoom(car, first, ax)];
 end
-axis equal
-grid on
-xlim([-250 250] + mean(pathCm(:, 1)));
-ylim([-250 250] + mean(pathCm(:, 2)));
-xlabel("forward (cm)");
-ylabel("left (cm)");
-legend("map points (objects)", "SLAM path", "start", "true path (simulator only)", ...
-    "Location", "bestoutside");
-title(sprintf("Visual SLAM map (%.0f cm for each SLAM unit)", cmPerUnit));
+axis(ax, "equal");
+grid(ax, "on");
+xlim(ax, [-250 250] + mean(pathCm(:, 1)));
+ylim(ax, [-250 250] + mean(pathCm(:, 2)));
+xlabel(ax, "forward (cm)");
+ylabel(ax, "left (cm)");
+legend(ax, h, "Location", "southoutside", "NumColumns", 2);
+title(ax, "Top view of the map");
 
 result = struct("vslam", vslam, "cmPerUnit", cmPerUnit, "pathCm", pathCm, ...
     "mapPointsCm", X, "truePathCm", truePathCm, "sonarCm", ranges(1:k), ...
@@ -955,8 +1017,10 @@ s = sind(start(3));
 xy = [d(:, 1) * c + d(:, 2) * s, -d(:, 1) * s + d(:, 2) * c];
 end
 
-function drawSimRoom(car, start, ax)
+function h = drawSimRoom(car, start, ax)
 % SIMULATOR ONLY: draw the true walls and furniture (green) to check the map.
+% h is one line for the legend. On the real car, h is empty.
+h = gobjects(1, 0);
 if ~isa(car, "ElegooSimCar"), return; end
 tmp = figure("Visible", "off");
 car.showFloorPlan(axes(tmp));           % Room outline in meters
@@ -964,7 +1028,42 @@ outlines = findobj(tmp, "Type", "line");
 hold(ax, "on");
 for i = 1:numel(outlines)
     xy = toStartFrame(100 * [outlines(i).XData(:), outlines(i).YData(:)], start);
-    plot(ax, xy(:, 1), xy(:, 2), "-", "Color", [0.1 0.7 0.1], "LineWidth", 1);
+    outline = plot(ax, xy(:, 1), xy(:, 2), "-", "Color", [0.1 0.7 0.1], "LineWidth", 1, ...
+        "HandleVisibility", "off");
+    if i == 1
+        outline.DisplayName = "true walls and furniture (simulator only)";
+        outline.HandleVisibility = "on";
+        h = outline;
+    end
 end
 close(tmp);
+end
+
+function tl = labeledFigure(car, task, number, titleText, layout, position)
+% Make one figure with a clear label, for example
+%   "Task 3, Figure 3.1: Sonar map from one position"
+% The subtitle shows the data source (simulator or real car). Each panel
+% in the figure has a letter: (a), (b), (c), (d).
+source = "real car";
+if isa(car, "ElegooSimCar")
+    source = "simulator";
+end
+label = sprintf("Task %d, Figure %d.%d: %s", task, task, number, titleText);
+figure("Name", label, "NumberTitle", "off", "Position", position, "Color", "w");
+tl = tiledlayout(layout(1), layout(2), "TileSpacing", "compact", "Padding", "compact");
+title(tl, label, "FontWeight", "bold", "FontSize", 13);
+subtitle(tl, "Data from the " + source);
+end
+
+function limits = mapLimits(map)
+% Give the axis limits of the occupancy grid: [xMin xMax yMin yMax] (cm).
+widthCm = size(map.hits, 1) * map.cellCm;
+limits = map.cornerCm + [0 widthCm 0 widthCm];
+end
+
+function h = gridLegendItems(ax)
+% Make legend items for the three cell colors of the occupancy grid.
+h = patch(ax, NaN, NaN, "w", "EdgeColor", "k", "DisplayName", "free cell (white)");
+h(2) = patch(ax, NaN, NaN, "k", "DisplayName", "occupied cell (black)");
+h(3) = patch(ax, NaN, NaN, [0.5 0.5 0.5], "EdgeColor", "none", "DisplayName", "unknown cell (gray)");
 end
