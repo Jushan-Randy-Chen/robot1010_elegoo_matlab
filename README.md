@@ -49,7 +49,11 @@ The kit has `elegooMappingTemplate.m`, `ElegooRobotCar.m`, `ElegooSimCar.m`, `si
 
 ## Safety
 
-The car moves in short stop-and-go steps, and every script sets a 1 s motor watchdog. Keep the car away from stairs and table edges.
+The mapping code moves the car in short stop-and-go steps. Every script that drives the car sets a 1 s motor watchdog, so the motors stop if MATLAB stops sending commands. Keep the car away from stairs and table edges.
+
+## License
+
+MIT, see [LICENSE](LICENSE). The simulator textures keep their own MIT No Attribution license.
 
 ## Credits
 
