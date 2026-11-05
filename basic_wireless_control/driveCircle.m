@@ -1,56 +1,41 @@
-%
-% set v and omega to allow smart car to drive in circle
-%
+function log = driveCircle(robot, v, w, T)
+% DRIVECIRCLE  Drive on a circle for T seconds and log the gyro.
+%   log = driveCircle(robot)             % v = 100, w = 30, T = 5
+%   log = driveCircle(robot, v, w, T)
+% Differential drive in PWM units: left = v - w, right = v + w.
+% w > 0 turns left. Clear 1.5 m of floor around the car first.
+arguments
+    robot
+    v (1,1) double = 100
+    w (1,1) double = 30
+    T (1,1) double {mustBePositive} = 5
+end
 
-robot.close;
-
-robot=ElegooRobotCar('192.168.4.1');
-
-robot.stop;
 robot.setWatchdog(1000);
-stopOnExit = onCleanup(@() stopRobotSafely(robot)); %#ok<NASGU>
-
-clear t y img 
-
-v = 100;
-w = 10;
-T = 5;
-img = {};
-
-% start the loop
-k=1;
-k_s=1;
-n_save=50;
-t(1)=0;
-
-while t(k)<T
-tic;
-if mod(k-1,n_save)==0
-    img{k_s} = robot.capture;
-    k_s=k_s+1;
+stopAtEnd = onCleanup(@() robot.stop());
+left = round(min(max(v - w, -255), 255));
+right = round(min(max(v + w, -255), 255));
+t = [];
+gyroZ = [];
+timer = tic;
+while toc(timer) < T
+    robot.drive(left, right);            % send again each loop: the watchdog stays fed
+    imu = robot.readIMU();
+    t(end+1) = toc(timer); %#ok<AGROW>
+    gyroZ(end+1) = imu.gyro(3); %#ok<AGROW>
 end
-robot.forward(v);
-y(k)=robot.readIMU;
-robot.turnRight(w);
-k=k+1;
-t(k)= t(k-1)+toc;
+robot.stop();
+
+rawPerDegS = 131;                        % MPU-6050: 131 raw = 1 deg/s
+if isa(robot, "ElegooSimCar")
+    rawPerDegS = 1;                      % the simulator gyro gives deg/s
 end
-
-robot.stop
-
-w = [y.gyro];
-a = [y.accel];
-
-figure,plot(t(1:end-1),w(3,:));
-xlabel('time (s)');ylabel('\omega_z');
-figure,plot(t(1:end-1),a(1,:),t(1:end-1),a(2,:));
-xlabel('time (s)');ylabel('a_x/a_y');legend('a_x','a_y');
-
-
-function stopRobotSafely(robot)
-    try
-        robot.stop();
-    catch
-end
-
+rateDeg = gyroZ / rawPerDegS;
+log = struct("t", t, "gyroZ", gyroZ, "turnDeg", trapz(t, rateDeg));
+figure("Name", "driveCircle", "NumberTitle", "off");
+plot(t, rateDeg, ".-");
+grid on
+xlabel("time (s)");
+ylabel("turn rate (deg/s)");
+title(sprintf("left %d, right %d PWM: turned %.0f deg in %.1f s", left, right, log.turnDeg, T));
 end

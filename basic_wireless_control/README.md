@@ -8,7 +8,7 @@ Drive the ELEGOO Smart Robot Car V4 over Wi-Fi from MATLAB and stream its camera
 | `checkCar.m` | Five-minute hardware check (sensors, timing, photo direction, wheel sides, watchdog). It prints the constants for `ElegooRobotCar.m`. Run it once per car type. |
 | `elegooCarDashboard.m` | Dashboard UI: teleoperation, timed (v, ω, T) drives, live camera, sonar, IR and IMU, pan scan, data logging and snapshots. |
 | `driveUntilObstacle.m` | Drive forward until the ultrasonic sensor sees an object. |
-| `driveCircle.m` | Drive in a circle and log the IMU. |
+| `driveCircle.m` | `driveCircle(robot, v, w, T)`: drive on a circle (left = v - w, right = v + w, w > 0 turns left) and plot the gyro turn rate. |
 
 ## Quick start
 
