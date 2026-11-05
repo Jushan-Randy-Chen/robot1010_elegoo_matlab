@@ -446,18 +446,17 @@ Save each figure with `exportgraphics` (see section 2). Keep the label of the fi
 |---|---|
 | `Undefined function 'detectORBFeatures'` or `'monovslam'` | Install the Computer Vision Toolbox (section 1.2). |
 | `Undefined function or variable` with a file of the kit (for example `ElegooSimCar`) | Set the MATLAB current folder to the kit folder (section 1.4). |
-| `MATLAB cannot connect to the car` (real car) | Make sure that the computer is on the Wi-Fi network of your car. Disconnect from a VPN. On a Mac, examine the Local Network permission (section 1.6). Set the power switch of the car to OFF, then to ON. Do the task again. |
+| `MATLAB cannot connect to the car` (real car) | Make sure that the computer is on the Wi-Fi network of your car. Disconnect from a VPN. Close other MATLAB programs that connect to the car (the car accepts one connection at a time). On a Mac, examine the Local Network permission (section 1.6). Set the power switch of the car to OFF, then to ON. Do the task again. |
 | `No object is 70 cm to 130 cm in front of the car` (task 2) | Put the car approximately 1 m from a wall or a large box. |
 | `The car does not turn` (task 2) | Increase the PWM or the time of `S.turnLeft` in SETTINGS. Example: `S.turnLeft = [-150 150 0.12];` |
-| `The camera turn angles are negative` or `the photo is upside down` | Set `S.flipImage = true` in SETTINGS. |
+| `The camera shows a turn to the RIGHT` or the photo is upside down or a mirror image | Ask your TA. The TA runs `checkCar.m` and corrects `ElegooRobotCar.m`. |
 | `The camera found too few corners` | Put the car in a place with more objects (furniture, posters, boxes). |
 | `The car did not turn 90 degrees` (task 4) | Do task 2 again. Write the new values in SETTINGS. |
 | In task 3, pan(150) turns the sensor head to the right | Set `S.panLeftIsBigger = false` in SETTINGS. |
-| `The sonar gives no value` | Examine the sonar and its cable. |
+| `The sonar gives no value` | The car does not answer. Examine the Wi-Fi connection. Close other programs that connect to the car (only one connection at a time). |
 | `The map did not start after 300 photos` (task 5) | Put furniture, posters or boxes near the car. Calibrate the camera. |
 | `The car does not turn left on the circle` (task 5) | Make `S.circle(1)` smaller than `S.circle(2)`. Example: `S.circle = [125 160 0.15];` |
 | `SLAM did not make a map` or the car stops early (task 5) | The room has too few corners. Move the car to a different area. Do the task again. |
-| `The camera calibration uses flipImage = ...` | Set `S.flipImage` in SETTINGS to the value in the message. |
 | The car hits an object | Push Ctrl+C. Remove objects from the floor. |
 | The car does not stop | Lift the car. Set the power switch to OFF. |
 

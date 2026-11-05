@@ -36,13 +36,8 @@ while toc(timer) < maxDurationSec
     result.elapsedSec = toc(timer);
     fprintf("Distance: %.0f cm\n", distanceCm);
 
-    % A zero/invalid echo is treated as a sensor fault and stops the car.
-    if ~isfinite(distanceCm) || distanceCm <= 0
-        error("driveUntilObstacle:InvalidDistance", ...
-            "Ultrasonic reading was invalid (%g cm); stopping for safety.", distanceCm);
-    end
-
-    if distanceCm <= stopDistanceCm
+    % 0 means no echo: nothing within about 5 m, so the path is clear.
+    if distanceCm > 0 && distanceCm <= stopDistanceCm
         result.reason = "obstacle";
         robot.stop();
         fprintf("Stopping at %.0f cm (threshold %.0f cm).\n", ...

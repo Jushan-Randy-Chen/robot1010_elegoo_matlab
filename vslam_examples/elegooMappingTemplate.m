@@ -109,11 +109,11 @@ S.degPerTurn = 15;              % Angle of one turn step (degrees)
 
 % Sensors
 S.panLeftIsBigger = true;       % true if pan(150) turns the sensor head to the LEFT (task 3)
-S.sonarMaxCm = 150;             % The sonar shows this value when no object is in range
+S.sonarMaxCm = 150;             % No object in range (the real sonar sends 0): the car uses this value
 S.sensorAheadCm = 9;            % Distance from the wheel axle to the sensor head (cm)
 S.cameraFovDeg = 60;            % Camera field of view, left edge to right edge (degrees)
 S.cameraHeightCm = 12;          % Height of the camera above the floor (cm)
-S.flipImage = false;            % true if the photo is upside down
+% NOTE: The photo direction (upside down, mirror) is set in ElegooRobotCar.m.
 
 %% CONNECT TO THE CAR AND DO THE TASK
 % The results go into the variable "result" in the Workspace.
@@ -186,14 +186,14 @@ sonarCm = [];
 timer = tic;
 while toc(timer) < 10
     sonarTime(end+1) = toc(timer); %#ok<AGROW>
-    sonarCm(end+1) = readSonar(car, 1); %#ok<AGROW>
+    sonarCm(end+1) = readSonar(car, S, 1); %#ok<AGROW>
     set(h, "XData", sonarTime, "YData", sonarCm);
     drawnow limitrate
     pause(0.05);
 end
 
 % 2. One photo and its corners (ORB features)
-photo = takePhoto(car, S);
+photo = takePhoto(car);
 corners = detectORBFeatures(im2gray(photo));
 strongest = corners.selectStrongest(200);
 ax = nexttile;
@@ -268,7 +268,7 @@ function result = task2_calibrate(car, S)
 
 % 1. Find an object 70 cm to 130 cm in front of the car
 for i = 1:30
-    cm = readSonar(car, 3);
+    cm = readSonar(car, S, 3);
     if cm > 70 && cm < 130, break; end
     stepCar(car, S.turnLeft, S);
 end
@@ -280,18 +280,18 @@ end
 % 2. Length of one step: the sonar is the ruler.
 %    The car stops if it comes nearer than 30 cm to the object.
 nSteps = 8;
-before = readSonar(car, 5);             % Median of 5 values: less noise
+before = readSonar(car, S, 5);             % Median of 5 values: less noise
 nForward = 0;
 for i = 1:nSteps
-    if ~(readSonar(car) >= 30), break; end
+    if ~(readSonar(car, S) >= 30), break; end
     stepCar(car, S.forward, S);
     nForward = nForward + 1;
 end
-after = readSonar(car, 5);
+after = readSonar(car, S, 5);
 for i = 1:nForward
     stepCar(car, S.backward, S);
 end
-back = readSonar(car, 5);
+back = readSonar(car, S, 5);
 if nForward < 4
     error("The car moved only %d steps before it came near the object. Put the car " + ...
         "approximately 1 m from the object. Then do the task again.", nForward);
@@ -307,7 +307,7 @@ fprintf("One step forward = %.1f cm. One step back = %.1f cm.\n", cmPerStep, cmP
 %    b. Near 360 degrees, find the photo that matches the first photo best.
 %       At this photo, the car is at the first view again.
 %    The sum in step a can have a small error. Step b does not have this error.
-first = takePhoto(car, S);
+first = takePhoto(car);
 previous = first;
 photos = {};
 sumDeg = [];
@@ -318,7 +318,7 @@ nNoMatch = 0;                           % Turn steps with too few corners
 while total < 400 && k < 80
     k = k + 1;
     stepCar(car, S.turnLeft, S);
-    photos{k} = takePhoto(car, S); %#ok<AGROW>
+    photos{k} = takePhoto(car); %#ok<AGROW>
     turn = turnFromPhotos(previous, photos{k}, S);
     if isnan(turn)
         turn = S.degPerTurn;            % Not enough corners: use the value in SETTINGS
@@ -327,8 +327,8 @@ while total < 400 && k < 80
     total = total + turn;
     sumDeg(k) = total; %#ok<AGROW>
     if k == 3 && total < -10
-        error("The camera turn angles are negative, but the car turns left. " + ...
-            "The photo is upside down: set S.flipImage = true in SETTINGS.");
+        error("The camera shows a turn to the RIGHT, but the car must turn LEFT. " + ...
+            "Ask your TA to run checkCar.m (wheel sides and photo mirror).");
     elseif k == 3 && abs(total) < 0.3 * 3 * S.degPerTurn
         error("The car does not turn. Increase the PWM or the time of S.turnLeft in SETTINGS.");
     end
@@ -431,7 +431,7 @@ pause(0.6);                             % The first move is long: wait for the s
 for i = 1:numel(pans)
     car.pan(pans(i));
     pause(0.15);                        % Wait until the servo is at the angle
-    ranges(i) = readSonar(car, 3);
+    ranges(i) = readSonar(car, S, 3);
 end
 car.pan(90);
 angles = sensorAngle(pans, S);          % 0 = forward, positive = left
@@ -522,14 +522,14 @@ for corner = 1:4
     for pan = 15:10:165
         car.pan(pan);
         pause(0.15);
-        map = addReading(map, x, y, heading + sensorAngle(pan, S), readSonar(car, 3), S);
+        map = addReading(map, x, y, heading + sensorAngle(pan, S), readSonar(car, S, 3), S);
     end
     car.pan(90);
     pause(0.3);
 
     % 2. Move along one side. Add one sonar value at each step.
     for i = 1:side
-        range = readSonar(car, 3);
+        range = readSonar(car, S, 3);
         map = addReading(map, x, y, heading, range, S);
         if ~(range >= 25), break; end   % An object is near (or no sonar value): stop this side
         stepCar(car, S.forward, S);
@@ -545,14 +545,14 @@ for corner = 1:4
     %    heading. This is feedback control.
     %    The car does not turn more than 2 times the usual number of steps.
     target = 90 * corner;
-    photo = takePhoto(car, S);
+    photo = takePhoto(car);
     maxTurnSteps = 2 * round(90 / S.degPerTurn) + 2;
     for i = 1:maxTurnSteps
         if heading >= target - S.degPerTurn / 2
             break
         end
         stepCar(car, S.turnLeft, S);
-        newPhoto = takePhoto(car, S);
+        newPhoto = takePhoto(car);
         turn = turnFromPhotos(photo, newPhoto, S);
         if ~useCamera || isnan(turn)
             turn = S.degPerTurn;        % Not enough corners: use the step count
@@ -562,8 +562,8 @@ for corner = 1:4
     end
     if heading < target - S.degPerTurn / 2
         car.stop();
-        error("The car did not turn 90 degrees. If the camera angles are negative, the photo " + ...
-            "is upside down: set S.flipImage = true. Else do task 2 again.");
+        error("The car did not turn 90 degrees. Do task 2 again. If the car turns to the " + ...
+            "right, ask your TA to run checkCar.m.");
     end
     fprintf("Corner %d: calculated pose x = %.0f cm, y = %.0f cm, heading = %.0f deg\n", ...
         corner, x, y, heading);
@@ -650,7 +650,7 @@ function result = task5_visualSlam(car, S)
 % NOTE: Your TA has a full version with a dashboard (visualSlamDemo.m).
 
 % 1. Camera model
-photo = takePhoto(car, S);
+photo = takePhoto(car);
 imageSize = size(photo, 1:2);
 if isa(car, "ElegooSimCar")
     camera = car.cameraIntrinsics();            % The simulator gives the exact camera
@@ -672,7 +672,7 @@ vslam = monovslam(pinhole, MaxNumPoints = 1000, TrackFeatureRange = [30 120], ..
 % 2. Values that the loop records
 maxPhotos = 500;                % The car stops after this number of photos
 phase = "start";                % start -> circle -> scale
-range = readSonar(car);
+range = readSonar(car, S);
 ranges = nan(maxPhotos, 1);     % Sonar value at each photo
 phases = strings(maxPhotos, 1);  % Phase at each photo
 statuses = strings(maxPhotos, 1);% SLAM status at each photo
@@ -752,7 +752,7 @@ for k = 1:maxPhotos
         circlePhotos = circlePhotos + 1;
         if circlePhotos == 40 && turned < 20
             error("The car does not turn left on the circle. Make S.circle(1) smaller " + ...
-                "than S.circle(2). If the photo is upside down, set S.flipImage = true.");
+                "than S.circle(2). If the car turns right, ask your TA to run checkCar.m.");
         end
         if circlePhotos > 250
             disp("NOTE: The circle is not complete after 250 photos. The sonar measures the scale now.");
@@ -779,11 +779,11 @@ for k = 1:maxPhotos
 
     % 4. Move, take a photo, read the sonar
     stepCar(car, move, S);
-    photo = takePhoto(car, S);
+    photo = takePhoto(car);
     if any(camera.RadialDistortion) || any(camera.TangentialDistortion)
         photo = undistortImage(photo, camera, OutputView = "same");
     end
-    range = readSonar(car);
+    range = readSonar(car, S);
     noSonar = (noSonar + 1) * isnan(range);
     if noSonar >= 3
         error("The sonar gives no value. Examine the sonar and its cable.");
@@ -795,10 +795,11 @@ for k = 1:maxPhotos
     if phase ~= "start" && ~isBackStep, history(end+1, :) = move; end %#ok<AGROW>
 
     % 5. Give the photo to SLAM
+    % Wait until SLAM finishes this photo. Then the result below is complete.
     addFrame(vslam, photo);
     waitTimer = tic;
-    while ~isDone(vslam) && toc(waitTimer) < 2
-        pause(0.01);
+    while ~isDone(vslam) && toc(waitTimer) < 20
+        pause(0.02);
     end
     if phase == "start"
         if numel(poses(vslam)) > 1
@@ -990,18 +991,14 @@ car.stop();
 car.setWatchdog(1000);          % Safety: the motors stop if MATLAB stops for 1 s
 car.pan(90);                    % Sensor head points forward
 pause(0.5);
-fprintf("Connected. The sonar shows %g cm.\n", readSonar(car));
-photo = takePhoto(car, S);
+fprintf("Connected. The sonar shows %g cm.\n", readSonar(car, S));
+photo = takePhoto(car);
 fprintf("The camera gives photos of %d x %d pixels.\n", size(photo, 2), size(photo, 1));
 if ~useSimulator && isfile(calibrationFile())
     % Use the calibrated field of view to measure the turns (task 2 and task 4).
     saved = load(calibrationFile());
     S.cameraFovDeg = 2 * atand(saved.intrinsics.ImageSize(2) / 2 / saved.intrinsics.FocalLength(1));
     fprintf("Camera calibration found: field of view = %.1f degrees.\n", S.cameraFovDeg);
-    if isfield(saved, "flipImage") && saved.flipImage ~= S.flipImage
-        error("The camera calibration uses flipImage = %d. Set S.flipImage = %d in SETTINGS.", ...
-            saved.flipImage, saved.flipImage);
-    end
 end
 end
 
@@ -1022,21 +1019,23 @@ car.stop();
 pause(S.settleSec);
 end
 
-function cm = readSonar(car, n)
+function cm = readSonar(car, S, n)
 % Read the sonar n times. Give the median distance (cm). NaN = no answer.
-if nargin < 2, n = 1; end
+% The real sonar sends 0 when no echo comes back (no object in range).
+% This function then gives S.sonarMaxCm, as the simulator does.
+if nargin < 3, n = 1; end
 values = nan(1, n);
 for i = 1:n
     reply = car.readDistance();
-    if isfield(reply, "distance") && isnumeric(reply.distance) && isscalar(reply.distance) ...
-            && reply.distance > 0       % 0 = no echo
+    if isfield(reply, "distance") && isnumeric(reply.distance) && isscalar(reply.distance)
         values(i) = double(reply.distance);
     end
 end
+values(values == 0 | values > S.sonarMaxCm) = S.sonarMaxCm;
 cm = median(values, "omitnan");
 end
 
-function photo = takePhoto(car, S)
+function photo = takePhoto(car)
 % Take one photo. If the Wi-Fi connection has a short problem, take the
 % photo again one time.
 try
@@ -1044,9 +1043,6 @@ try
 catch
     pause(0.3);
     photo = car.capture();
-end
-if S.flipImage
-    photo = rot90(photo, 2);    % The camera is upside down
 end
 end
 

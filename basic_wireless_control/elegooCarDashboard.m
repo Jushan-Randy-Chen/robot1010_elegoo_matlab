@@ -14,9 +14,8 @@ function elegooCarDashboard()
         return;
     end
 
-    % State flags for continuous sweeping and continuous teleoperation
+    % State flag for the continuous pan sweep
     sweepActive = false;
-    isDriving = false;
 
     % --- 2. Create Main UI Figure & Layout ---
     fig = uifigure('Name', 'Elegoo Robot Car Control & Sensor Dashboard', 'Position', [30, 30, 1350, 900]);
@@ -59,7 +58,7 @@ function elegooCarDashboard()
     uilabel(paramGrid, 'Text', 'Linear Speed v (-255 to 255):');
     vInput = uieditfield(paramGrid, 'numeric', 'Value', 100, 'Limits', [-255, 255]);
 
-    uilabel(paramGrid, 'Text', 'Angular Speed omega (-255 to 255):');
+    uilabel(paramGrid, 'Text', 'Turn omega (PWM, + = left):');
     omegaInput = uieditfield(paramGrid, 'numeric', 'Value', 30, 'Limits', [-255, 255]);
 
     uilabel(paramGrid, 'Text', 'Duration T (seconds):');
@@ -80,11 +79,11 @@ function elegooCarDashboard()
     uipanel(teleopGrid, 'BackgroundColor', [0.94 0.94 0.94]);
 
     btnLeft = uibutton(teleopGrid, 'Text', '◄ Turn Left', ...
-        'ButtonPushedFcn', @(~,~) startContinuousDrive(@() robot.turnLeft(omegaInput.Value)));
+        'ButtonPushedFcn', @(~,~) startContinuousDrive(@() robot.turnLeft(vInput.Value)));
     btnStop = uibutton(teleopGrid, 'Text', '■ STOP', 'BackgroundColor', [1 0.6 0.6], ...
         'ButtonPushedFcn', @(~,~) stopDrive());
     btnRight = uibutton(teleopGrid, 'Text', 'Turn Right ►', ...
-        'ButtonPushedFcn', @(~,~) startContinuousDrive(@() robot.turnRight(omegaInput.Value)));
+        'ButtonPushedFcn', @(~,~) startContinuousDrive(@() robot.turnRight(vInput.Value)));
 
     uipanel(teleopGrid, 'BackgroundColor', [0.94 0.94 0.94]);
     btnBackward = uibutton(teleopGrid, 'Text', '▼ Backward', ...
@@ -93,7 +92,7 @@ function elegooCarDashboard()
 
     % Pulse length input row spanning teleop grid
     uilabel(teleopGrid, 'Text', 'Pulse Time (s):');
-    pulseInput = uieditfield(teleopGrid, 'numeric', 'Value', 0.2, 'Limits', [0.01, 5.0]);
+    pulseInput = uieditfield(teleopGrid, 'numeric', 'Value', 0.2, 'Limits', [0.01, 1.0]);   % the 1 s watchdog stops longer pulses
     pulseInput.Layout.Column = [2, 3];
 
     % ==================== SCANNING CONFIGURATION PANEL ====================
@@ -147,23 +146,23 @@ function elegooCarDashboard()
     % --- Nested Callback Functions ---
     function updateSensors()
         try
-            imuData = robot.readIMU();%[span_0](start_span)[span_0](end_span)
-            distData = robot.readDistance();%[span_1](start_span)[span_1](end_span)[span_2](start_span)[span_2](end_span)
-            irData = robot.readIR();%[span_3](start_span)[span_3](end_span)
+            imuData = robot.readIMU();
+            distData = robot.readDistance();
+            irData = robot.readIR();
 
             gVal = 0; ayVal = 0;
             if isstruct(imuData)
                 if isfield(imuData, 'gyro')
-                    gVal = imuData.gyro(3);%[span_4](start_span)[span_4](end_span)
+                    gVal = imuData.gyro(3);
                 end
                 if isfield(imuData, 'accel')
-                    ayVal = imuData.accel(2);%[span_5](start_span)[span_5](end_span)
+                    ayVal = imuData.accel(2);
                 end
             end
 
             dVal = 0;
             if isstruct(distData) && isfield(distData, 'distance')
-                dVal = double(distData.distance);%[span_6](start_span)[span_6](end_span)
+                dVal = double(distData.distance);
             end
 
             lVal = 0;
@@ -191,40 +190,27 @@ function elegooCarDashboard()
     end
 
     function executeTimedDrive()
-        v = vInput.Value;
-        omega = omegaInput.Value;
-        T = tInput.Value;
-        
+        % Differential drive in PWM units: left = v - omega, right = v + omega.
+        left = round(max(min(vInput.Value - omegaInput.Value, 255), -255));
+        right = round(max(min(vInput.Value + omegaInput.Value, 255), -255));
         timerObj = tic;
-        while toc(timerObj) < T
-            robot.forward(v);%[span_7](start_span)[span_7](end_span)
-            if omega ~= 0
-                robot.drive(max(min(v + omega, 255), -255), max(min(v - omega, 255), -255));%[span_8](start_span)[span_8](end_span)
-            end
-            pause(0.02);
+        while toc(timerObj) < tInput.Value
+            robot.drive(left, right);   % send again often: the 1 s watchdog stays fed
+            pause(0.2);
         end
-        robot.stop();%[span_9](start_span)[span_9](end_span)
+        robot.stop();
     end
 
     function startContinuousDrive(driveFunc)
-        isDriving = true;
-        pTime = pulseInput.Value;
+        % One pulse: drive for the pulse time, then stop.
         driveFunc();
-        
-        startTime = tic;
-        while isDriving && toc(startTime) < (pTime + 0.1)
-            pause(0.02);
-        end
-        if isDriving
-        else
-            robot.stop();%[span_10](start_span)[span_10](end_span)
-        end
+        pause(pulseInput.Value);
+        robot.stop();
     end
 
     function stopDrive()
-        isDriving = false;
         try
-            robot.stop();%[span_11](start_span)[span_11](end_span)
+            robot.stop();
         catch
         end
     end
@@ -238,7 +224,7 @@ function elegooCarDashboard()
             idx = 1;
             
             while sweepActive && isvalid(fig)
-                robot.pan(angles(idx));%[span_12](start_span)[span_12](end_span)
+                robot.pan(angles(idx));
                 idx = mod(idx, length(angles)) + 1;
                 pause(0.25);
             end
@@ -251,14 +237,14 @@ function elegooCarDashboard()
         sweepActive = false;
         scanModeDropdown.Value = 'Fixed Angle';
         try
-            robot.pan(angleVal);%[span_13](start_span)[span_13](end_span)
+            robot.pan(angleVal);
         catch
         end
     end
 
     function captureAndShowSnapshot()
         try
-            frame = robot.capture();%[span_14](start_span)[span_14](end_span)
+            frame = robot.capture();
             imshow(frame, 'Parent', axCam);
             title(axCam, 'Camera Feed');
         catch ME
@@ -289,8 +275,8 @@ end
 
 function safeClose(robot)
     try
-        robot.stop();%[span_15](start_span)[span_15](end_span)
-        robot.close();%[span_16](start_span)[span_16](end_span)[span_17](start_span)[span_17](end_span)
+        robot.stop();
+        robot.close();
     catch
     end
 end

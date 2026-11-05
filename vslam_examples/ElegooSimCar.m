@@ -287,7 +287,9 @@ classdef ElegooSimCar < handle
             obj.Ax.CameraViewAngle = viewAngle;
             % Render at 2x and shrink: this smooths texture aliasing the way a
             % real lens blurs fine detail, so features stay stable between frames.
-            frame = imresize(getframe(obj.Ax).cdata, obj.ImageSize, "Antialiasing", true);
+            % Grab the figure, not the axes: on a Mac Retina screen getframe(axes)
+            % gives only one zoomed corner of the view.
+            frame = imresize(getframe(obj.Fig).cdata, obj.ImageSize, "Antialiasing", true);
         end
 
         function a = viewAngleDeg(obj)

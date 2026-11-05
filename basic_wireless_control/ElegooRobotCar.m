@@ -2,6 +2,14 @@ classdef ElegooRobotCar < handle
     % MATLAB client for the custom ELEGOO Smart Robot Car V4 firmware.
     % Arduino commands use TCP port 100; ESP32 HTTP endpoints use port 80.
 
+    properties (Constant)
+        % Car setup. Check these once on a real car with checkCar.m.
+        SwapSides = true    % true: the firmware "left" value (PWMA) drives the RIGHT wheels
+        PhotoSize = 8       % ESP32 frame size: 8 = 640x480, 5 = 320x240 (smaller = faster Wi-Fi)
+        PhotoVFlip = 1      % 1 = the ESP32 flips the photo upside down
+        PhotoMirror = 0     % 1 = the ESP32 mirrors the photo left-right
+    end
+
     properties (SetAccess = private)
         Host string
         Port double
@@ -22,6 +30,13 @@ classdef ElegooRobotCar < handle
             obj.HttpBase = "http://" + obj.Host;
             obj.Tcp = tcpclient(char(obj.Host), obj.Port, "Timeout", 3);
             configureTerminator(obj.Tcp, "LF");
+            try
+                obj.setCamera("framesize", obj.PhotoSize);
+                obj.setCamera("vflip", obj.PhotoVFlip);
+                obj.setCamera("hmirror", obj.PhotoMirror);
+            catch problem
+                warning("ElegooRobotCar:Camera", "Camera setup failed: %s", problem.message);
+            end
         end
 
         function response = command(obj, number, d1, d2, d3)
@@ -35,6 +50,7 @@ classdef ElegooRobotCar < handle
             if ~isempty(d2), payload.D2 = double(d2); end
             if ~isempty(d3), payload.D3 = double(d3); end
 
+            flush(obj.Tcp, "input");   % drop a late reply to an older command
             writeline(obj.Tcp, string(jsonencode(payload)));
             while true
                 line = readline(obj.Tcp);
@@ -64,7 +80,11 @@ classdef ElegooRobotCar < handle
             % Set left and right motor speeds in the range -255 to 255.
             validateattributes(left, {'numeric'}, {'scalar', 'integer', '>=', -255, '<=', 255});
             validateattributes(right, {'numeric'}, {'scalar', 'integer', '>=', -255, '<=', 255});
-            response = obj.command(7, left, right);
+            if obj.SwapSides
+                response = obj.command(7, right, left);
+            else
+                response = obj.command(7, left, right);
+            end
         end
 
         function response = forward(obj, speed)
@@ -77,14 +97,15 @@ classdef ElegooRobotCar < handle
             response = obj.command(3, speed);
         end
 
-        function response = turnRight(obj, speed)
+        function response = turnLeft(obj, speed)
+            % Firmware N=4 turns toward its "left" side, N=5 toward its "right".
             if nargin < 2, speed = []; end
-            response = obj.command(4, speed);
+            response = obj.command(4 + obj.SwapSides, speed);
         end
 
-        function response = turnLeft(obj, speed)
+        function response = turnRight(obj, speed)
             if nargin < 2, speed = []; end
-            response = obj.command(5, speed);
+            response = obj.command(5 - obj.SwapSides, speed);
         end
 
         function response = stop(obj)

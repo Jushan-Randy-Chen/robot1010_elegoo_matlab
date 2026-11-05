@@ -1,4 +1,4 @@
-function intrinsics = calibrateElegooCamera(squareSizeMm, host, flipImage)
+function intrinsics = calibrateElegooCamera(squareSizeMm, host)
 % CALIBRATEELEGOOCAMERA  Measure the focal length and the lens distortion of
 % the ESP32 camera. Task 5 of elegooMappingTemplate.m uses these values to
 % change pixels into 3-D directions. (The TA demo visualSlamDemo.m also uses them.) Do this procedure one time for each car.
@@ -14,8 +14,8 @@ function intrinsics = calibrateElegooCamera(squareSizeMm, host, flipImage)
 %   4. Connect the computer to the Wi-Fi network of the car.
 %   5. Type: calibrateElegooCamera(squareSizeMm)
 %      Example: calibrateElegooCamera(25)
-%   6. If the live photo is upside down, push F before you keep photos.
-%      Then also set S.flipImage = true in elegooMappingTemplate.m.
+%   6. The photo must be upright and not a mirror image. If it is not,
+%      ask your TA (checkCar.m sets the photo direction in ElegooRobotCar.m).
 %   7. Hold the board 20 cm to 60 cm in front of the car. Move and tilt the
 %      board. Put it in all areas of the photo, also in the corners.
 %   8. Click the figure window. The keys work only when this window is
@@ -27,8 +27,8 @@ function intrinsics = calibrateElegooCamera(squareSizeMm, host, flipImage)
 %  10. Do not move elegooCameraIntrinsics.mat. elegooMappingTemplate.m finds
 %      it in the same folder.
 %
-% NOTE: Calibrate at the photo size that task 5 uses. The template shows the
-%       photo size when it connects ("The camera gives photos of ...").
+% NOTE: ElegooRobotCar sets the photo size (PhotoSize). If you change it,
+%       calibrate again.
 % NOTE: Push Q to stop without a calibration.
 
 if nargin >= 1 && (isstring(squareSizeMm) || ischar(squareSizeMm)) && squareSizeMm == "print"
@@ -40,7 +40,6 @@ if nargin < 1 || isempty(squareSizeMm)
         "Give the size of one printed square in mm. Example: calibrateElegooCamera(25).");
 end
 if nargin < 2 || isempty(host), host = "192.168.4.1"; end
-if nargin < 3 || isempty(flipImage), flipImage = false; end
 
 % Find ElegooRobotCar.m. In the student kit, it is in this folder. In the
 % course repository, it is in the basic_wireless_control folder.
@@ -70,7 +69,6 @@ intrinsics = [];
 
 while isvalid(fig)
     frame = robot.capture();
-    if flipImage, frame = rot90(frame, 2); end
     [points, thisBoard] = detectCheckerboardPoints(frame, PartialDetections = false);
     found = ~isempty(points) && all(thisBoard > 0) && ...
         (isempty(boardSize) || isequal(thisBoard, boardSize));
@@ -81,7 +79,7 @@ while isvalid(fig)
         plot(ax, points(:, 1), points(:, 2), "g+", "MarkerSize", 6, "LineWidth", 1);
     end
     hold(ax, "off");
-    title(ax, sprintf("%dx%d  |  %d photos kept  |  Click this window, then: SPACE = keep  F = flip  C = calibrate  Q = quit", ...
+    title(ax, sprintf("%dx%d  |  %d photos kept  |  Click this window, then: SPACE = keep  C = calibrate  Q = quit", ...
         size(frame, 2), size(frame, 1), numel(images)));
     drawnow;
 
@@ -98,13 +96,6 @@ while isvalid(fig)
             else
                 fprintf("The computer did not find the checkerboard in this photo. The photo is not kept.\n");
             end
-        case "f"
-            if ~isempty(images)
-                fprintf("Push F before you keep a photo. To change it now, start the function again.\n");
-            else
-                flipImage = ~flipImage;
-                fprintf("flipImage = %d\n", flipImage);
-            end
         case "c"
             if numel(images) < 8
                 fprintf("Keep 8 photos or more first (15 to 20 photos is better).\n");
@@ -112,7 +103,7 @@ while isvalid(fig)
             end
             intrinsics = runCalibration(imagePoints, boardSize, squareSizeMm, size(images{1}, 1:2));
             calibFile = fullfile(here, "elegooCameraIntrinsics.mat");
-            save(calibFile, "intrinsics", "flipImage");
+            save(calibFile, "intrinsics");
             fprintf("Saved %s\n", calibFile);
             break
         case "q"

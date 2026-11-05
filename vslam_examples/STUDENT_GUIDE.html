@@ -613,7 +613,7 @@ This guide uses ASD-STE100 Simplified Technical English.</p>
 </tr>
 <tr>
 <td><code>MATLAB cannot connect to the car</code> (real car)</td>
-<td>Make sure that the computer is on the Wi-Fi network of your car. Disconnect from a VPN. On a Mac, examine the Local Network permission (section 1.6). Set the power switch of the car to OFF, then to ON. Do the task again.</td>
+<td>Make sure that the computer is on the Wi-Fi network of your car. Disconnect from a VPN. Close other MATLAB programs that connect to the car (the car accepts one connection at a time). On a Mac, examine the Local Network permission (section 1.6). Set the power switch of the car to OFF, then to ON. Do the task again.</td>
 </tr>
 <tr>
 <td><code>No object is 70 cm to 130 cm in front of the car</code> (task 2)</td>
@@ -624,8 +624,8 @@ This guide uses ASD-STE100 Simplified Technical English.</p>
 <td>Increase the PWM or the time of <code>S.turnLeft</code> in SETTINGS. Example: <code>S.turnLeft = [-150 150 0.12];</code></td>
 </tr>
 <tr>
-<td><code>The camera turn angles are negative</code> or <code>the photo is upside down</code></td>
-<td>Set <code>S.flipImage = true</code> in SETTINGS.</td>
+<td><code>The camera shows a turn to the RIGHT</code> or the photo is upside down or a mirror image</td>
+<td>Ask your TA. The TA runs <code>checkCar.m</code> and corrects <code>ElegooRobotCar.m</code>.</td>
 </tr>
 <tr>
 <td><code>The camera found too few corners</code></td>
@@ -641,7 +641,7 @@ This guide uses ASD-STE100 Simplified Technical English.</p>
 </tr>
 <tr>
 <td><code>The sonar gives no value</code></td>
-<td>Examine the sonar and its cable.</td>
+<td>The car does not answer. Examine the Wi-Fi connection. Close other programs that connect to the car (only one connection at a time).</td>
 </tr>
 <tr>
 <td><code>The map did not start after 300 photos</code> (task 5)</td>
@@ -654,10 +654,6 @@ This guide uses ASD-STE100 Simplified Technical English.</p>
 <tr>
 <td><code>SLAM did not make a map</code> or the car stops early (task 5)</td>
 <td>The room has too few corners. Move the car to a different area. Do the task again.</td>
-</tr>
-<tr>
-<td><code>The camera calibration uses flipImage = ...</code></td>
-<td>Set <code>S.flipImage</code> in SETTINGS to the value in the message.</td>
 </tr>
 <tr>
 <td>The car hits an object</td>

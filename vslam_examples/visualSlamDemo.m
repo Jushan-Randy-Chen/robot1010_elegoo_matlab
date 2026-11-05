@@ -78,7 +78,7 @@ try
         robot.setWatchdog(1000);           % motors stop if MATLAB stops talking
         robot.pan(90);                     % camera and sonar look straight ahead
         pause(0.5);
-        [camK, cfg.flipImage, startMessages] = startupCheck(robot, cfg);
+        [camK, startMessages] = startupCheck(robot, cfg);
     end
 catch ME
     if options.AutoRun, rethrow(ME); end
@@ -332,7 +332,7 @@ end
                 newRange = replay.runLog.rangeCm(k + 1);
             else
                 move(robot, action, speedInput.Value, circleInput.Value, cfg);
-                frame = grabFrame(robot, cfg);
+                frame = grabFrame(robot);
                 newRange = readRange(robot);
             end
         catch ME
@@ -359,9 +359,9 @@ end
         % ---- Visual SLAM ----
         img = imresize(undistort(frame, camK), cfg.workSize);
         addFrame(vslam, img);
-        waitTimer = tic;
-        while ~isDone(vslam) && toc(waitTimer) < 2
-            pause(0.01);
+        waitTimer = tic;                        % wait until SLAM finishes this photo
+        while ~isDone(vslam) && toc(waitTimer) < 20
+            pause(0.02);
         end
 
         % No map yet after 4 photos? Not enough parallax: start over from here.
@@ -477,7 +477,6 @@ end
 function cfg = defaultConfig()
 cfg.intrinsicsFile = fullfile(fileparts(mfilename("fullpath")), "elegooCameraIntrinsics.mat");   % from calibrateElegooCamera
 cfg.guessFovDeg = 60;          % lens guess if there is no calibration file
-cfg.flipImage = false;         % taken from the calibration file
 cfg.workSize = [480 640];      % photos are resized to this for SLAM
 cfg.cameraHeightM = 0.12;      % lens height above the floor (measure yours)
 
@@ -539,43 +538,41 @@ robot.stop();
 pause(cfg.settleSec);
 end
 
-function frame = grabFrame(robot, cfg)
+function frame = grabFrame(robot)
 try
     frame = robot.capture();
 catch
     pause(0.3);                     % one retry if Wi-Fi hiccuped
     frame = robot.capture();
 end
-if cfg.flipImage, frame = rot90(frame, 2); end
 end
 
 function r = readRange(robot)
-% Whole cm, NaN if missing or zero (driveUntilObstacle treats 0 as a fault).
+% Whole cm, NaN if no reply. The firmware sends 0 for no echo (nothing in
+% range): use 150 cm, the same value as the simulator.
 r = NaN;
 try
     reply = robot.readDistance();
-    if isfield(reply, "distance") && reply.distance > 0, r = double(reply.distance); end
+    if isfield(reply, "distance"), r = double(reply.distance); end
 catch
 end
+if r == 0 || r > 150, r = 150; end
 end
 
-function [K, flipImage, msgs] = startupCheck(robot, cfg)
+function [K, msgs] = startupCheck(robot, cfg)
 % Camera model, image size and the ultrasonic sensor, explained in the log.
-flipImage = false;
 if isa(robot, "ElegooSimCar")
     K = robot.cameraIntrinsics();
     calibMsg = "Simulated camera.";
 elseif isfile(cfg.intrinsicsFile)
     saved = load(cfg.intrinsicsFile);
     K = saved.intrinsics;
-    if isfield(saved, "flipImage"), flipImage = saved.flipImage; end
     calibMsg = "Using camera calibration " + cfg.intrinsicsFile + ".";
 else
     K = [];
     calibMsg = "WARNING: no camera calibration; guessing a 60-degree lens. Run calibrateElegooCamera.";
 end
-cfg.flipImage = flipImage;
-frame = grabFrame(robot, cfg);
+frame = grabFrame(robot);
 sz = size(frame, 1:2);
 if isempty(K)
     f = (sz(2) / 2) / tand(cfg.guessFovDeg / 2);

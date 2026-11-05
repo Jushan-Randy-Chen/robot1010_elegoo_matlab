@@ -39,11 +39,35 @@ cd vslam_examples
 visualSlamDemo("sim")          % full visual SLAM demo
 ```
 
-**Real car**
+**Real car:** follow the checklist below.
 
-1. Join the car's Wi-Fi network (`ELEGOO-...`). The car is at `192.168.4.1`.
-2. Run `elegooCarDashboard` in `basic_wireless_control/`, or set `USE_SIMULATOR = false` in the template.
-3. Before line tracking or edge mapping, run `runIRSensorTest` in `sensor_tests/ir_line_sensor/` (it also runs in a simulator).
+## Real-car test checklist
+
+Before you go offline:
+
+- Start MATLAB while the computer still has internet (license check). Open this folder.
+- Print the calibration board: `cd vslam_examples`, then `calibrateElegooCamera("print")`.
+- Note the car's Wi-Fi name and password: `wifiName` and `wifiPassword` in the ESP32 sketch (`ElegooCarESP32S3.ino`).
+
+On the car:
+
+1. **Car:** batteries charged, both boards flashed, ESP32-UNO wires connected. Power ON, **motor switch OFF**.
+2. **Wi-Fi:** join the car's network. Turn off any VPN. On a Mac, allow MATLAB in System Settings > Privacy & Security > Local Network. Check: `http://192.168.4.1/capture` shows a photo in a browser.
+3. **Hardware check** (5 min). Answer its y/n questions. It asks before the motors turn and tells you when to lift the car.
+   ```matlab
+   cd basic_wireless_control
+   report = checkCar      % prints SwapSides, PhotoVFlip, PhotoMirror
+   save carCheck report
+   ```
+   Write the three printed values at the top of `ElegooRobotCar.m`. Run `checkCar` again until it says "The file is already correct".
+4. **Drive:** run `elegooCarDashboard`. Try a short pulse in each direction and a timed drive (omega > 0 turns left). **Close the dashboard when you are done:** the car accepts one connection at a time.
+5. **IR line sensors** (before line tracking or edge mapping): in `sensor_tests/ir_line_sensor/`, run `runIRSensorTest`.
+6. **Obstacle stop:** face a wall 1 m away, then run `driveUntilObstacle(ElegooRobotCar("192.168.4.1"), 25, 60, 10)`.
+7. **Camera calibration:** in the `vslam_examples/` folder, run `calibrateElegooCamera(25)` (use your measured square size in mm).
+8. **Template:** in `elegooMappingTemplate.m`, set `USE_SIMULATOR = false`. Run tasks 1 to 4 in order. Write the task 2 results in SETTINGS. Then run task 5 on 2.5 m x 2.5 m of clear floor with furniture around it.
+9. **Bring back:** `carCheck.mat`, the task 2 values and the Task 5 figures.
+
+To stop the car: press Ctrl+C in MATLAB. The motors stop 1 s after MATLAB stops sending. If they do not, lift the car and switch it off.
 
 ## Student kit
 
