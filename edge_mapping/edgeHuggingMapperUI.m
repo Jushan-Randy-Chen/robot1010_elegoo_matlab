@@ -3,6 +3,11 @@ function edgeHuggingMapperUI()
     % Connects using the provided ElegooRobotCar class framework.
 
     % --- 1. Connection Setup ---
+    % Find ElegooRobotCar.m. In the course repository, it is in the
+    % basic_wireless_control folder.
+    if exist("ElegooRobotCar", "file") ~= 2
+        addpath(fullfile(fileparts(mfilename("fullpath")), "..", "basic_wireless_control"));
+    end
     hostIP = '192.168.4.1'; 
     try
         robot = ElegooRobotCar(hostIP);

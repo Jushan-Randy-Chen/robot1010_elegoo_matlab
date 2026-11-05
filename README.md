@@ -5,14 +5,22 @@ MATLAB code for the ELEGOO Smart Robot Car V4 used in ROBT 1010 Intro to Robotic
 ## Repository layout
 
 ```
-basic_wireless_control/   Drive the car over Wi-Fi and stream the camera (start here)
+basic_wireless_control/   ElegooRobotCar client, dashboard, simple drive scripts (start here)
+sensor_tests/             Sensor checks; ir_line_sensor/ tests the line-tracking IR sensors
+edge_mapping/             Table-edge mapper UIs (IR + sonar)
+camera_recording/         Save camera frames as a GIF or an MP4
+control_simulations/      Feedback-control simulations (Live Scripts), no car needed
 vslam_examples/           Simulator, student mapping template, visual SLAM demo
 tools/                    makeStudentKit.m (student zip in dist/, not in git), build_guide_html.py
 ```
 
 | Folder | Contents |
 |---|---|
-| [`basic_wireless_control/`](basic_wireless_control/) | `ElegooRobotCar` client class, dashboard UI, simple drive and recording scripts |
+| [`basic_wireless_control/`](basic_wireless_control/) | `ElegooRobotCar` client class (all folders use it), dashboard UI, simple drive scripts |
+| [`sensor_tests/ir_line_sensor/`](sensor_tests/ir_line_sensor/) | Guided test of the three IR line sensors (motors off), live monitor, IR simulator, unit tests |
+| [`edge_mapping/`](edge_mapping/) | `edgeHuggingMapperUI`, `tableMapperVideoUI` |
+| [`camera_recording/`](camera_recording/) | `make_gif`, `make_video` |
+| [`control_simulations/`](control_simulations/) | `sim_distance_control.mlx`: P-control of the distance to a wall |
 | [`vslam_examples/`](vslam_examples/) | `elegooMappingTemplate.m` (5-task student template), `visualSlamDemo.m`, `ElegooSimCar.m` simulator, camera calibration |
 
 ## Requirements
@@ -35,6 +43,7 @@ visualSlamDemo("sim")          % full visual SLAM demo
 
 1. Join the car's Wi-Fi network (`ELEGOO-...`). The car is at `192.168.4.1`.
 2. Run `elegooCarDashboard` in `basic_wireless_control/`, or set `USE_SIMULATOR = false` in the template.
+3. Before line tracking or edge mapping, run `runIRSensorTest` in `sensor_tests/ir_line_sensor/` (it also runs in a simulator).
 
 ## Student kit
 
