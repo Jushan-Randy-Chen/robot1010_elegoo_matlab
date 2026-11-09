@@ -2,7 +2,7 @@
 
 Mapping and localization with the car's own sensors: ultrasonic sensor (sonar), ESP32 camera and gyro. Everything runs in a pure-MATLAB simulator first, then on the real car.
 
-**Contents:** [Files](#files) · [What is visual SLAM?](#what-is-visual-slam) · [How the five tasks build up](#how-the-five-tasks-build-up-to-slam) · [Task 5 step by step](#task-5-step-by-step) · [Quick start](#quick-start) · [Simulator results](#simulator-results-matlab-r2026b) · [TA checklist](#before-students-use-the-real-car-ta-checklist) · [Rebuild the student kit](#rebuild-the-student-kit)
+**Contents:** [Files](#files) · [What is visual SLAM?](#what-is-visual-slam) · [How the five tasks build up](#how-the-five-tasks-build-up-to-slam) · [Task 5 step by step](#task-5-step-by-step) · [Quick start](#quick-start) · [Simulator results](#simulator-results-matlab-r2026b) · [Real car, step by step](#visual-slam-on-the-real-car-step-by-step) · [Rebuild the student kit](#rebuild-the-student-kit)
 
 <p align="center">
   <img src="docs/images/task5_live_view.gif" width="720" alt="Task 5 live view: the camera photo (left) and the SLAM map and camera path growing as the car drives a circle (right)">
@@ -171,21 +171,46 @@ The vSLAM files find `ElegooRobotCar.m` in `../basic_wireless_control` automatic
 
 These results are from the simulator only (MATLAB R2026b). The code is not yet tested on the real car. NOTE: on MATLAB R2026a on a MacBook, the simulated camera rendered a lower, narrower view (mostly floor) and task 2 stopped with "too few corners"; use R2026b for the simulator.
 
-## Before students use the real car (TA checklist)
+## Visual SLAM on the real car, step by step
 
-Do the [real-car test checklist](../README.md#real-car-test-checklist) on one car first. `checkCar.m` sets the wheel sides and the photo direction in `ElegooRobotCar.m`, so the template has no photo-flip setting. Facts from the firmware:
+Nothing in this folder has run on the real car yet. Do this once on one car before students use it.
 
-- **Sonar:** `distance` in cm. 0 = no echo (nothing within about 5 m); the template and the demo use 150 cm for it, as the simulator does.
-- **Gyro:** raw MPU-6050 counts, 131 counts = 1 deg/s.
-- **Watchdog:** only drive commands reset it. Sensor reads do not keep the motors on.
-- **Camera:** `ElegooRobotCar` sets 640 x 480 when it connects (`PhotoSize`). Calibrate at that size.
-- **One TCP connection:** close the dashboard before you run the template.
+**Before you leave the internet**
 
-Then check on the course floor:
+1. Start MATLAB and open this repository.
+2. Print the calibration board: in this folder, run `calibrateElegooCamera("print")`. Tape it flat on stiff cardboard and measure one square in mm.
 
-1. **Pulse size.** Does `S.turnLeft = [-130 130 0.10]` turn the car on carpet? Wi-Fi delay adds to every pulse (`checkCar` prints the round trip).
-2. **`S.circle`.** Drive 20 circle steps and check that the car curves left. Task 5 stops with an error if it does not turn left after 40 circle photos.
-3. **Car network names.** Label each car with its Wi-Fi name, so students connect to their own car.
+**Connect**
+
+3. Charge the batteries. Car power ON, motor switch **OFF**.
+4. Join the car's Wi-Fi network and turn off any VPN. Check that `http://192.168.4.1/capture` shows a photo in a browser.
+
+**Check the car (about 5 minutes)**
+
+5. In `basic_wireless_control/`, run `report = checkCar`, then `save carCheck report`. Answer its y/n questions. It tells you when to lift the car and when to turn the motors on.
+6. Type the three values it prints at the top of `ElegooRobotCar.m`. Run `checkCar` again until it says "The file is already correct".
+
+**Calibrate the camera (about 5 minutes)**
+
+7. In this folder, run `calibrateElegooCamera(25)`, using your square size in mm instead of 25.
+8. Click the camera window. Hold the board 20 cm to 60 cm in front of the camera at different angles. Press Space for each good photo (green corners), 15 to 20 photos. Then press C to save.
+
+**Set up the room**
+
+9. Clear 2.5 m x 2.5 m of floor, with furniture, shelves, posters or boxes around it. SLAM needs corners: avoid blank walls, shiny floors and sunlight glare.
+10. Put the car 0.5 m from the right edge of the area, pointing along that edge (the circle goes to the left). Point the camera at something with detail.
+
+**Run visual SLAM**
+
+11. In this folder, run `visualSlamDemo()` and click **Start Auto Run**. The car drives forward and back until the map starts, then a circle, then straight to an object to measure the scale. Each photo takes 1 to 2 s; a run can take up to 15 minutes. Do not close the MATLAB windows. To stop: Ctrl+C, or lift the car and switch it off.
+12. When it ends, click **Finish & Build Map**.
+13. Keep `carCheck.mat` and the `vslamRun_...` folder. The folder has every photo and the run log; replay it with `visualSlamDemo("vslamRun_...")`.
+
+**Good to know**
+
+- The sonar sends 0 when nothing is within about 5 m. The code uses 150 cm for it, as the simulator does.
+- The car accepts one connection at a time. Close the dashboard before you run the demo or the template.
+- `ElegooRobotCar` sets the photo size to 640 x 480 when it connects. Calibrate at that size.
 
 ## Rebuild the student kit
 
