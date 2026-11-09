@@ -11,7 +11,7 @@ edge_mapping/             Table-edge mapper UIs (IR + sonar)
 camera_recording/         Save camera frames as a GIF or an MP4
 control_simulations/      Feedback-control simulations (Live Scripts), no car needed
 vslam_examples/           Simulator, student mapping template, visual SLAM demo
-tools/                    makeStudentKit.m (student zip in dist/, not in git), build_guide_html.py
+tools/                    makeStudentKit.m (student zip in dist/, not in git)
 ```
 
 | Folder | Contents |
@@ -63,11 +63,13 @@ On the car:
 4. **Drive:** run `elegooCarDashboard`. Try a short pulse in each direction and a timed drive (omega > 0 turns left). **Close the dashboard when you are done:** the car accepts one connection at a time.
 5. **IR line sensors** (before line tracking or edge mapping): in `sensor_tests/ir_line_sensor/`, run `runIRSensorTest`.
 6. **Obstacle stop:** face a wall 1 m away, then run `driveUntilObstacle(ElegooRobotCar("192.168.4.1"), 25, 60, 10)`.
-7. **Camera calibration:** in the `vslam_examples/` folder, run `calibrateElegooCamera(25)` (use your measured square size in mm).
+7. **Camera calibration (optional for a first test):** in the `vslam_examples/` folder, run `calibrateElegooCamera(25)`. Use your measured square size in mm instead of 25.
 8. **Template:** in `elegooMappingTemplate.m`, set `USE_SIMULATOR = false`. Run tasks 1 to 4 in order. Write the task 2 results in SETTINGS. Then run task 5 on 2.5 m x 2.5 m of clear floor with furniture around it.
 9. **Bring back:** `carCheck.mat`, the task 2 values and the Task 5 figures.
 
 To stop the car: press Ctrl+C in MATLAB. The motors stop 1 s after MATLAB stops sending. If they do not, lift the car and switch it off.
+
+If the photos are colored stripes, charge the battery. For this and other problems, see [If something goes wrong](vslam_examples/README.md#if-something-goes-wrong).
 
 ## Student kit
 
@@ -78,7 +80,7 @@ cd tools
 makeStudentKit        % -> dist/ElegooMappingKit.zip
 ```
 
-The kit has `elegooMappingTemplate.m`, `ElegooRobotCar.m`, `ElegooSimCar.m`, `simAssets/`, `calibrateElegooCamera.m`, the student guide (`STUDENT_GUIDE.html` with embedded figures, `STUDENT_GUIDE.md`, `docs/images/`) and a short `README.txt`, all in ASD-STE100 Simplified Technical English. Students run each task in the simulator first, then on the real car. After a change of `STUDENT_GUIDE.md`, run `python tools/build_guide_html.py` (needs `pip install markdown`) before `makeStudentKit`. See the TA checklist in [vslam_examples/README.md](vslam_examples/README.md) before the first real-car session.
+The kit has `elegooMappingTemplate.m`, `ElegooRobotCar.m`, `ElegooSimCar.m`, `simAssets/`, `calibrateElegooCamera.m`, `docs/images/` and `README.md`. The README of [vslam_examples](vslam_examples/README.md) is the only student guide. It uses ASD-STE100 Simplified Technical English. Students do each task in the simulator first, then on the real car. Before the first real-car session, do the real-car steps in that README.
 
 ## Safety
 

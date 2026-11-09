@@ -2,7 +2,7 @@
 
 Mapping and localization with the car's own sensors: ultrasonic sensor (sonar), ESP32 camera and gyro. Everything runs in a pure-MATLAB simulator first, then on the real car.
 
-**Contents:** [Files](#files) · [What is visual SLAM?](#what-is-visual-slam) · [How the five tasks build up](#how-the-five-tasks-build-up-to-slam) · [Task 5 step by step](#task-5-step-by-step) · [Quick start](#quick-start) · [Simulator results](#simulator-results-matlab-r2026b) · [Real car, step by step](#visual-slam-on-the-real-car-step-by-step) · [Rebuild the student kit](#rebuild-the-student-kit)
+**Contents:** [Files](#files) · [What is visual SLAM?](#what-is-visual-slam) · [How the five tasks build up](#how-the-five-tasks-build-up-to-slam) · [Task 5 step by step](#task-5-step-by-step) · [Quick start](#quick-start) · [Simulator results](#simulator-results-matlab-r2026b) · [Real car, step by step](#visual-slam-on-the-real-car-step-by-step) · [If something goes wrong](#if-something-goes-wrong) · [Rebuild the student kit](#rebuild-the-student-kit)
 
 <p align="center">
   <img src="docs/images/task5_live_view.gif" width="720" alt="Task 5 live view: the camera photo (left) and the SLAM map and camera path growing as the car drives a circle (right)">
@@ -18,9 +18,8 @@ Mapping and localization with the car's own sensors: ultrasonic sensor (sonar), 
 | `ElegooSimCar.m` | Simulator: a furnished 5 m x 4 m living room. It has the same commands as `ElegooRobotCar`. |
 | `simAssets/` | Room textures for the simulator (AWS RoboMaker Small House World, MIT-0). |
 | `calibrateElegooCamera.m` | One-time checkerboard calibration of the ESP32 camera. |
-| `STUDENT_GUIDE.md`, `STUDENT_GUIDE.html` | **Student guide:** each task, each labeled figure with an example image and how to read it, the expected results, a results table and a glossary. The HTML file is generated from the Markdown by `tools/build_guide_html.py`, with the figures embedded, so students can open it in any browser. |
-| `STUDENT_README.txt` | Short student instructions. In the student kit it becomes `README.txt`. |
-| `docs/images/` | Example figures from the simulator, used by the guide and this README. |
+| `README.md` | This file. It is the only guide for students and TAs. The student kit also contains it. |
+| `docs/images/` | Example figures from the simulator. This README uses them. |
 
 ## What is visual SLAM?
 
@@ -102,7 +101,7 @@ flowchart LR
 | 4. Square + dead reckoning | Square, camera-feedback turns | Step count + camera visual odometry | Sonar occupancy grid |
 | 5. Visual SLAM | Map-start sweep, ~1.25 circles, scale drive | `monovslam` (loop closure) | Camera map points, sonar scale |
 
-Every figure has a label such as **Task 3, Figure 3.1**, and its panels are lettered (a), (b) and so on. The [student guide](STUDENT_GUIDE.md) explains how to read each one. Examples from the simulator:
+Every figure has a label such as **Task 3, Figure 3.1**. Each panel has a letter: (a), (b) and so on. Examples from the simulator:
 
 <table>
   <tr>
@@ -132,7 +131,7 @@ flowchart TD
     S4 --> SNAP
     SNAP --> ADD["monovslam addFrame"]
     ADD --> STATUS{"SLAM status?"}
-    STATUS -->|"map not started<br/>reset after 4 photos"| PICK
+    STATUS -->|"map not started<br/>new SLAM after 4 photos"| PICK
     STATUS -->|TrackingLost| PICK
     STATUS -->|"tracking OK"| TURN["Add the turn of the<br/>newest key frame"]
     TURN --> DONE{"Circle of 450 degrees<br/>and scale drive done?"}
@@ -169,11 +168,11 @@ The vSLAM files find `ElegooRobotCar.m` in `../basic_wireless_control` automatic
 - Task 4: the square almost closes; the calculated path stays within about 10 cm of the true path.
 - Task 5: the map starts after 220–250 photos. Complete runs have 61–67 key frames and the loop closes; the path is 20–40 cm RMS from the truth and the sonar scale error is −40% to +20% (it changes each run). About 2 of 3 runs complete (4 of 6 in our tests, as for visualSlamDemo); the others stop early with lost tracking, which the template reports as "Task 5 stopped early".
 
-These results are from the simulator only (MATLAB R2026b). The code is not yet tested on the real car. NOTE: on MATLAB R2026a on a MacBook, the simulated camera rendered a lower, narrower view (mostly floor) and task 2 stopped with "too few corners"; use R2026b for the simulator.
+These results are from the simulator only (MATLAB R2026b). NOTE: On MATLAB R2026a on a MacBook, the simulated camera shows a lower, narrower view (mostly floor). Task 2 then stops with "too few corners". Use R2026b for the simulator.
 
 ## Visual SLAM on the real car, step by step
 
-Nothing in this folder has run on the real car yet. Do this once on one car before students use it.
+The first real-car tests started in November 2026. A complete real-car map is not available yet. Do these steps once on one car before students use it.
 
 **Before you leave the internet**
 
@@ -192,8 +191,7 @@ Nothing in this folder has run on the real car yet. Do this once on one car befo
 
 **Calibrate the camera (optional, about 5 minutes)**
 
-You can skip this for a first test: the demo then assumes a 60-degree lens. Calibrate later if the map looks bent or SLAM loses track often.
-
+You can skip this for a first test. The demo then uses a 60-degree lens. Calibrate later if the map looks bent or SLAM loses track frequently.
 
 7. In this folder, run `calibrateElegooCamera(25)`, using your square size in mm instead of 25.
 8. Click the camera window. Hold the board 20 cm to 60 cm in front of the camera at different angles. Press Space for each good photo (green corners), 15 to 20 photos. Then press C to save.
@@ -213,12 +211,21 @@ You can skip this for a first test: the demo then assumes a 60-degree lens. Cali
 
 - The sonar sends 0 when nothing is within about 5 m. The code uses 150 cm for it, as the simulator does.
 - The car accepts one connection at a time. Close the dashboard before you run the demo or the template.
-- `ElegooRobotCar` sets the photo size to 640 x 480 when it connects. Calibrate at that size.
+- `ElegooRobotCar` sets the photo size to 640 x 480 when it connects (`PhotoSize = 10`). Calibrate at that size.
+
+## If something goes wrong
+
+| What you see | Possible cause | What to do |
+|---|---|---|
+| The photo is colored stripes, or MATLAB shows `Corrupt JPEG data`. | The battery is low. A low battery causes bad photos from the ESP32 camera, also before the car moves. | Charge the battery. Then open `http://192.168.4.1/capture` in a browser. Make sure that the photo is clear. |
+| `Step failed (Photo still corrupt after 3 tries ...)`. The car stops. | `ElegooRobotCar` tried 3 times to get a good photo. The battery is low, or the Wi-Fi signal is weak. | Charge the battery. Put the computer near the car. Start the run again. |
+| The bottom of the photo is gray. | The Wi-Fi signal is weak, and the photo did not arrive completely. | Put the computer near the car. |
+| `Camera 400x296` or another size than 640x480 at the start. | `PhotoSize` at the top of `ElegooRobotCar.m` is not 10. | Set `PhotoSize = 10`. Then run `clear classes`. |
+| `No map: SLAM never started`. | The photos are bad, or the room has too few corners. | Look at the photos in the `vslamRun_...` folder. If they are bad, see the first row. If they are clear, add objects with detail around the area. |
 
 ## Rebuild the student kit
 
 ```matlab
-% after any change of STUDENT_GUIDE.md:  python tools/build_guide_html.py   (needs: pip install markdown)
 cd tools
 makeStudentKit        % -> dist/ElegooMappingKit.zip (no top folder: one folder after unzip)
 ```

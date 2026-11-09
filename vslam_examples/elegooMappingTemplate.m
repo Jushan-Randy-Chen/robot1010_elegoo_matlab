@@ -58,8 +58,7 @@
 %      c. Click Run.
 %   7. Compare the results of the simulator and the real car.
 %
-% NOTE: STUDENT_GUIDE.md shows each figure (for example "Task 3, Figure 3.1")
-%       and tells you how to read it.
+% NOTE: README.md shows example figures (for example "Task 3, Figure 3.1").
 % NOTE: The simulator car and the real car are not the same. Do task 2 on
 %       the real car before task 4 on the real car. Write the results of
 %       the real car in SETTINGS.
