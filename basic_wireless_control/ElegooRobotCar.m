@@ -5,7 +5,7 @@ classdef ElegooRobotCar < handle
     properties (Constant)
         % Car setup. Check these once on a real car with checkCar.m.
         SwapSides = true    % true: the firmware "left" value (PWMA) drives the RIGHT wheels
-        PhotoSize = 8       % ESP32 frame size: 8 = 640x480, 5 = 320x240 (smaller = faster Wi-Fi)
+        PhotoSize = 10      % ESP32 frame size: 10 = 640x480, 6 = 320x240 (smaller = faster Wi-Fi)
         PhotoVFlip = 1      % 1 = the ESP32 flips the photo upside down
         PhotoMirror = 0     % 1 = the ESP32 mirrors the photo left-right
     end
@@ -189,8 +189,22 @@ classdef ElegooRobotCar < handle
         end
 
         function frame = capture(obj)
-            % Return one JPEG frame as an MATLAB image array.
-            frame = webread(char(obj.HttpBase + "/capture"));
+            % Return one JPEG frame as a MATLAB image array.
+            % On weak Wi-Fi a photo can arrive cut short. MATLAB then gives a
+            % "Corrupt JPEG data" warning. We hide that warning and try again.
+            jpegWarning = "MATLAB:imagesci:jpg:libraryMessage";
+            oldState = warning("off", jpegWarning);
+            restoreWarning = onCleanup(@() warning(oldState));
+            for attempt = 1:3
+                lastwarn("");
+                frame = webread(char(obj.HttpBase + "/capture"));
+                [~, warningId] = lastwarn();
+                if ~strcmp(warningId, jpegWarning)
+                    return     % good photo
+                end
+            end
+            error("ElegooRobotCar:BadPhoto", ...
+                "Photo still corrupt after 3 tries. Charge the battery or move closer to Wi-Fi");
         end
 
         function url = streamURL(obj)
