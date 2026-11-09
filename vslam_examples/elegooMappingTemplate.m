@@ -806,7 +806,11 @@ for k = 1:maxPhotos
             phase = "circle";
             disp("The map started. The car moves on a circle.");
         elseif k - resetAt >= 4
-            reset(vslam);               % No map after 4 photos: start again from this photo
+            % No map after 4 photos: start again with a new SLAM object.
+            % (Do not use reset(vslam): after it, each photo waits 20 s.)
+            delete(vslam);
+            vslam = monovslam(pinhole, MaxNumPoints = 1000, TrackFeatureRange = [30 120], ...
+                LoopClosureThreshold = 40);
             resetAt = k;
         end
     end

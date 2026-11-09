@@ -369,7 +369,12 @@ end
             if numel(poses(vslam)) > 1
                 mapStarted = true;
             elseif k - photosBeforeMap >= cfg.startSweep
-                reset(vslam);
+                % Start over with a new SLAM object. (Do not use reset(vslam):
+                % after it, isDone never turns true and each photo waits 20 s.)
+                delete(vslam);
+                vslam = monovslam(slamK, MaxNumPoints = cfg.maxPoints, ...
+                    TrackFeatureRange = cfg.trackFeatureRange, ...
+                    LoopClosureThreshold = cfg.loopClosureThreshold);
                 photosBeforeMap = k;
             end
         end
