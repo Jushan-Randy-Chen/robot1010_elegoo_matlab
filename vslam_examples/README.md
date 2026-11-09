@@ -178,7 +178,7 @@ Nothing in this folder has run on the real car yet. Do this once on one car befo
 **Before you leave the internet**
 
 1. Start MATLAB and open this repository.
-2. Print the calibration board: in this folder, run `calibrateElegooCamera("print")`. Tape it flat on stiff cardboard and measure one square in mm.
+2. Optional: print the camera calibration board (a checkerboard): in this folder, run `calibrateElegooCamera("print")`. Tape it flat on stiff cardboard and measure one square in mm.
 
 **Connect**
 
@@ -190,7 +190,10 @@ Nothing in this folder has run on the real car yet. Do this once on one car befo
 5. In `basic_wireless_control/`, run `report = checkCar`, then `save carCheck report`. Answer its y/n questions. It tells you when to lift the car and when to turn the motors on.
 6. Type the three values it prints at the top of `ElegooRobotCar.m`. Run `checkCar` again until it says "The file is already correct".
 
-**Calibrate the camera (about 5 minutes)**
+**Calibrate the camera (optional, about 5 minutes)**
+
+You can skip this for a first test: the demo then assumes a 60-degree lens. Calibrate later if the map looks bent or SLAM loses track often.
+
 
 7. In this folder, run `calibrateElegooCamera(25)`, using your square size in mm instead of 25.
 8. Click the camera window. Hold the board 20 cm to 60 cm in front of the camera at different angles. Press Space for each good photo (green corners), 15 to 20 photos. Then press C to save.
