@@ -182,7 +182,7 @@ The first real-car tests started in November 2026. A complete real-car map is no
 **Connect**
 
 3. Charge the batteries. Car power ON, motor switch **OFF**.
-4. Join the car's Wi-Fi network and turn off any VPN. Check that `http://192.168.4.1/capture` shows a photo in a browser.
+4. Join the car's Wi-Fi network and turn off any VPN. In a browser, open `http://192.168.4.1/capture`. Make sure that the photo is clear. If the photo is colored stripes, charge the battery and do this step again.
 
 **Check the car (about 5 minutes)**
 
@@ -203,7 +203,7 @@ You can skip this for a first test. The demo then uses a 60-degree lens. Calibra
 
 **Run visual SLAM**
 
-11. In this folder, run `visualSlamDemo()` and click **Start Auto Run**. The car drives forward and back until the map starts, then a circle, then straight to an object to measure the scale. Each photo takes 1 to 2 s; a run can take up to 15 minutes. Do not close the MATLAB windows. To stop: Ctrl+C, or lift the car and switch it off.
+11. In this folder, run `clear classes`, then run `visualSlamDemo()`. `clear classes` makes MATLAB use the newest version of `ElegooRobotCar.m`. Click **Start Auto Run**. The car drives forward and back until the map starts, then a circle, then straight to an object to measure the scale. Each photo takes 1 to 2 s; a run can take up to 15 minutes. Do not close the MATLAB windows. To stop: Ctrl+C, or lift the car and switch it off.
 12. When it ends, click **Finish & Build Map**.
 13. Keep `carCheck.mat` and the `vslamRun_...` folder. The folder has every photo and the run log; replay it with `visualSlamDemo("vslamRun_...")`.
 
