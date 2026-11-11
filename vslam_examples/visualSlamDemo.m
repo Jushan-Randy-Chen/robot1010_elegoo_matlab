@@ -92,7 +92,7 @@ catch ME
 end
 cleanupObj = onCleanup(@() safeClose(robot));
 
-% --- 2. Visual SLAM object (undistorted 640x480 photos) ---
+% --- 2. Visual SLAM object (photos are undistorted and resized to 640x480) ---
 slamK = scaleIntrinsics(cameraIntrinsics(camK.FocalLength, camK.PrincipalPoint, camK.ImageSize), ...
     cfg.workSize);
 vslam = monovslam(slamK, MaxNumPoints = cfg.maxPoints, TrackFeatureRange = cfg.trackFeatureRange, ...
@@ -593,8 +593,8 @@ assert(abs(K.ImageSize(2) / K.ImageSize(1) - sz(2) / sz(1)) < 0.01, ...
 K = scaleIntrinsics(K, sz);
 r = readRange(robot);
 msgs = [calibMsg; sprintf("Camera %dx%d, ultrasonic %g cm.", sz(2), sz(1), r)];
-if sz(2) < 640
-    msgs(end+1) = "WARNING: photos are smaller than 640x480; maps will start poorly.";
+if sz(2) < 400
+    msgs(end+1) = "WARNING: photos are smaller than 400x296; maps will start poorly.";
 end
 assert(~isnan(r), "The ultrasonic sensor does not answer.");
 end

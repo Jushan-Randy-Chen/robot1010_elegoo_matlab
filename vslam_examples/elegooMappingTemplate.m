@@ -19,7 +19,7 @@
 %   ------------------  --------------------  ---------------------------  ---------
 %   Ultrasonic sensor   HC-SR04 module, on    Distance to the nearest      1 2 3 4 5
 %   (sonar)             the pan servo head    object, 2 cm to 150 cm
-%   Camera              ESP32 camera module,  Photos (640 x 480 pixels).   1 2 4 5
+%   Camera              ESP32 camera module,  Photos (400 x 296 pixels).   1 2 4 5
 %                       on the pan servo head The computer finds corners
 %                                             in the photos.
 %   Gyro                MPU-6050 IMU          Turn rate of the car around  1

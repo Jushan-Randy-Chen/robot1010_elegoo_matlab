@@ -5,7 +5,8 @@ classdef ElegooRobotCar < handle
     properties (Constant)
         % Car setup. Check these once on a real car with checkCar.m.
         SwapSides = true    % true: the firmware "left" value (PWMA) drives the RIGHT wheels
-        PhotoSize = 10      % ESP32 frame size: 10 = 640x480, 6 = 320x240 (smaller = faster Wi-Fi)
+        PhotoSize = 8       % ESP32 frame size: 8 = 400x296, 6 = 320x240. Do not use 10 (640x480):
+                            % the camera then sends colored stripes (garbage photos).
         PhotoVFlip = 1      % 1 = the ESP32 flips the photo upside down
         PhotoMirror = 0     % 1 = the ESP32 mirrors the photo left-right
     end
@@ -191,21 +192,24 @@ classdef ElegooRobotCar < handle
         function frame = capture(obj)
             % Return one JPEG frame as a MATLAB image array.
             % Photo address: http://<car IP>/capture (default http://192.168.4.1/capture).
-            % On weak Wi-Fi a photo can arrive cut short. MATLAB then gives a
-            % "Corrupt JPEG data" warning. We hide that warning and try again.
+            % Sometimes the camera makes a bad photo (for example, the first
+            % photos after a size change). MATLAB then gives a "Corrupt JPEG
+            % data" warning. We hide that warning, wait a little, and try again.
             jpegWarning = "MATLAB:imagesci:jpg:libraryMessage";
             oldState = warning("off", jpegWarning);
             restoreWarning = onCleanup(@() warning(oldState));
-            for attempt = 1:3
+            for attempt = 1:5
                 lastwarn("");
                 frame = webread(char(obj.HttpBase + "/capture"));
-                [~, warningId] = lastwarn();
+                [warningText, warningId] = lastwarn();
                 if ~strcmp(warningId, jpegWarning)
                     return     % good photo
                 end
+                pause(0.2);    % give the camera time to make a new photo
             end
             error("ElegooRobotCar:BadPhoto", ...
-                "Photo still corrupt after 3 tries. Charge the battery or move closer to Wi-Fi");
+                "Photo still corrupt after 5 tries (%s). Close any /stream page, " + ...
+                "charge the battery, and restart the car.", strtrim(warningText));
         end
 
         function url = streamURL(obj)

@@ -211,17 +211,17 @@ You can skip this for a first test. The demo then uses a 60-degree lens. Calibra
 
 - The sonar sends 0 when nothing is within about 5 m. The code uses 150 cm for it, as the simulator does.
 - The car accepts one connection at a time. Close the dashboard before you run the demo or the template.
-- `ElegooRobotCar` sets the photo size to 640 x 480 when it connects (`PhotoSize = 10`). Calibrate at that size.
+- `ElegooRobotCar` sets the photo size to 400 x 296 when it connects (`PhotoSize = 8`). Calibrate at that size. Do not use 640 x 480 (`PhotoSize = 10`): the camera then sends colored stripes.
 - Live video: open `http://192.168.4.1/stream` in a browser. One photo: `http://192.168.4.1/capture`. Close the stream before you run the demo. While the stream is open, the car cannot send photos to MATLAB.
 
 ## If something goes wrong
 
 | What you see | Possible cause | What to do |
 |---|---|---|
-| The photo is colored stripes, or MATLAB shows `Corrupt JPEG data`. | The battery is low. A low battery causes bad photos from the ESP32 camera, also before the car moves. | Charge the battery. Then open `http://192.168.4.1/capture` in a browser. Make sure that the photo is clear. |
-| `Step failed (Photo still corrupt after 3 tries ...)`. The car stops. | `ElegooRobotCar` tried 3 times to get a good photo. The battery is low, or the Wi-Fi signal is weak. | Charge the battery. Put the computer near the car. Start the run again. |
+| The photo is colored stripes, or MATLAB shows `Corrupt JPEG data`. | The photo size is 640 x 480, or the battery is low. | Set `PhotoSize = 8` in `ElegooRobotCar.m`, run `clear classes`, and switch the car off and on. Charge the battery. Then open `http://192.168.4.1/capture` in a browser. Make sure that the photo is clear. |
+| `Photo still corrupt after 5 tries ...`. The car stops. | `ElegooRobotCar` tried 5 times to get a good photo. See the row above. A `/stream` page is open. | Do the steps in the row above. Close the `/stream` page. Start the run again. |
 | The bottom of the photo is gray. | The Wi-Fi signal is weak, and the photo did not arrive completely. | Put the computer near the car. |
-| `Camera 400x296` or another size than 640x480 at the start. | `PhotoSize` at the top of `ElegooRobotCar.m` is not 10. | Set `PhotoSize = 10`. Then run `clear classes`. |
+| `Camera 640x480` or another size than 400x296 at the start. | `PhotoSize` at the top of `ElegooRobotCar.m` is not 8. | Set `PhotoSize = 8`. Then run `clear classes`. |
 | `No map: SLAM never started`. | The photos are bad, or the room has too few corners. | Look at the photos in the `vslamRun_...` folder. If they are bad, see the first row. If they are clear, add objects with detail around the area. |
 
 ## Rebuild the student kit
