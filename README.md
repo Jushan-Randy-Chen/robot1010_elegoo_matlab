@@ -16,7 +16,7 @@ tools/                    makeStudentKit.m (student zip in dist/, not in git)
 
 | Folder | Contents |
 |---|---|
-| [`basic_wireless_control/`](basic_wireless_control/) | `ElegooRobotCar` client class (all folders use it), dashboard UI, simple drive scripts |
+| [`basic_wireless_control/`](basic_wireless_control/) | `ElegooRobotCar` client class (all folders use it), dashboard UI, simple drive scripts, basic-control tutorials (on-off stop, turn-rate measurement, gyro bias, saturation) |
 | [`sensor_tests/ir_line_sensor/`](sensor_tests/ir_line_sensor/) | Guided test of the three IR line sensors (motors off), live monitor, IR simulator, unit tests |
 | [`edge_mapping/`](edge_mapping/) | `edgeHuggingMapperUI`, `tableMapperVideoUI` |
 | [`camera_recording/`](camera_recording/) | `make_gif`, `make_video` |
@@ -60,7 +60,7 @@ On the car:
    save carCheck report
    ```
    Write the three printed values at the top of `ElegooRobotCar.m`. Run `checkCar` again until it says "The file is already correct".
-4. **Drive:** run `elegooCarDashboard`. Try a short pulse in each direction and a timed drive (omega > 0 turns left). **Close the dashboard when you are done:** the car accepts one connection at a time.
+4. **Drive:** run `elegooCarDashboard`. Try a short pulse in each direction and a timed drive (turn > 0 turns left). **Close the dashboard when you are done:** the car accepts one connection at a time.
 5. **IR line sensors** (before line tracking or edge mapping): in `sensor_tests/ir_line_sensor/`, run `runIRSensorTest`.
 6. **Obstacle stop:** face a wall 1 m away, then run `driveUntilObstacle(ElegooRobotCar("192.168.4.1"), 25, 60, 10)`.
 7. **Camera calibration (optional for a first test):** in the `vslam_examples/` folder, run `calibrateElegooCamera(25)`. Use your measured square size in mm instead of 25.

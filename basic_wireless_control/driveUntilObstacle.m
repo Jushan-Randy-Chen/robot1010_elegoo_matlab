@@ -1,6 +1,19 @@
 function result = driveUntilObstacle(robot, stopDistanceCm, speed, maxDurationSec)
-% Drive forward at low speed until the ultrasonic sensor sees a close object.
-% Example: result = driveUntilObstacle(robot, 25, 100, 20)
+% DRIVEUNTILOBSTACLE  Drive forward until the sonar sees a near object.
+%   result = driveUntilObstacle(robot)                 % 25 cm, speed 100, 20 s
+%   result = driveUntilObstacle(robot, 25, 100, 20)
+% This is on-off control: the car drives at one speed, then it stops.
+%
+% The sonar sends 0 when it receives no echo. Two different causes give 0:
+%   - nothing is within about 5 m (the path is clear), or
+%   - an object is nearer than about 3 cm, or its surface is soft or
+%     at an angle (the path is NOT clear).
+% Thus 0 is "unknown". The code uses the last good reading to decide:
+%   - last good reading far (more than 2 x stopDistanceCm): continue.
+%   - last good reading near: stop. This is the safe decision.
+%   - no good reading yet: continue. Make sure that the path is
+%     clear before you start.
+% result.reason is "obstacle", "noEchoNear" or "timeout".
 
 if nargin < 2 || isempty(stopDistanceCm)
     stopDistanceCm = 25;
@@ -21,8 +34,11 @@ robot.stop;
 robot.setWatchdog(1000);
 stopOnExit = onCleanup(@() stopRobotSafely(robot)); %#ok<NASGU>
 
+nearLimitCm = 2 * stopDistanceCm;   % a last good reading below this is "near"
+lastGoodCm = NaN;                   % NaN: no good reading yet
 timer = tic;
-result = struct("reason", "timeout", "distanceCm", NaN, "elapsedSec", 0);
+result = struct("reason", "timeout", "distanceCm", NaN, ...
+    "lastGoodCm", NaN, "elapsedSec", 0);
 
 while toc(timer) < maxDurationSec
     reading = robot.readDistance();
@@ -36,14 +52,27 @@ while toc(timer) < maxDurationSec
     result.elapsedSec = toc(timer);
     fprintf("Distance: %.0f cm\n", distanceCm);
 
-    % 0 means no echo: nothing within about 5 m, so the path is clear.
-    if distanceCm > 0 && distanceCm <= stopDistanceCm
-        result.reason = "obstacle";
+    if distanceCm > 0
+        % Good reading: compare it with the stop distance.
+        lastGoodCm = distanceCm;
+        result.lastGoodCm = lastGoodCm;
+        if distanceCm <= stopDistanceCm
+            result.reason = "obstacle";
+            robot.stop();
+            fprintf("Stopping at %.0f cm (threshold %.0f cm).\n", ...
+                distanceCm, stopDistanceCm);
+            return
+        end
+    elseif ~isnan(lastGoodCm) && lastGoodCm <= nearLimitCm
+        % No echo, and the last good reading was near: the object can be
+        % too near for the sonar. Stop.
+        result.reason = "noEchoNear";
         robot.stop();
-        fprintf("Stopping at %.0f cm (threshold %.0f cm).\n", ...
-            distanceCm, stopDistanceCm);
+        fprintf("Stopping: no echo, and the last good reading was %.0f cm.\n", ...
+            lastGoodCm);
         return
     end
+    % Else: no echo and the last good reading was far (or none yet): continue.
 
     robot.drive(speed, speed);
     pause(0.1);

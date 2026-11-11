@@ -50,7 +50,7 @@ function elegooCarDashboard()
     driveGrid = uigridlayout(drivePanel, [1, 2]);
     driveGrid.ColumnWidth = {'1x', '1.2x'};
 
-    % Left sub-grid: Specified v, omega, T parameters & Timed Drive Button
+    % Left sub-grid: Specified v, turn, T parameters & Timed Drive Button
     paramGrid = uigridlayout(driveGrid, [4, 2]);
     paramGrid.RowHeight = {'1x', '1x', '1x', '1.5x'};
     paramGrid.ColumnWidth = {'2.2x', '1x'};
@@ -58,13 +58,13 @@ function elegooCarDashboard()
     uilabel(paramGrid, 'Text', 'Linear Speed v (-255 to 255):');
     vInput = uieditfield(paramGrid, 'numeric', 'Value', 100, 'Limits', [-255, 255]);
 
-    uilabel(paramGrid, 'Text', 'Turn omega (PWM, + = left):');
-    omegaInput = uieditfield(paramGrid, 'numeric', 'Value', 30, 'Limits', [-255, 255]);
+    uilabel(paramGrid, 'Text', 'Turn (PWM difference, + = left):');
+    turnInput = uieditfield(paramGrid, 'numeric', 'Value', 30, 'Limits', [-255, 255]);
 
     uilabel(paramGrid, 'Text', 'Duration T (seconds):');
     tInput = uieditfield(paramGrid, 'numeric', 'Value', 3, 'Limits', [0.1, 60]);
 
-    runTimedBtn = uibutton(paramGrid, 'Text', 'Run Timed Drive (v, \omega, T)', ...
+    runTimedBtn = uibutton(paramGrid, 'Text', 'Run Timed Drive (v, turn, T)', ...
         'BackgroundColor', [0.6 0.8 1], ...
         'ButtonPushedFcn', @(~,~) executeTimedDrive());
     runTimedBtn.Layout.Column = [1, 2];
@@ -190,9 +190,10 @@ function elegooCarDashboard()
     end
 
     function executeTimedDrive()
-        % Differential drive in PWM units: left = v - omega, right = v + omega.
-        left = round(max(min(vInput.Value - omegaInput.Value, 255), -255));
-        right = round(max(min(vInput.Value + omegaInput.Value, 255), -255));
+        % Differential drive in PWM units: left = v - turn, right = v + turn.
+        % turn is a PWM difference, not rad/s. Use driveCircle to measure deg/s.
+        left = round(max(min(vInput.Value - turnInput.Value, 255), -255));
+        right = round(max(min(vInput.Value + turnInput.Value, 255), -255));
         timerObj = tic;
         while toc(timerObj) < tInput.Value
             robot.drive(left, right);   % send again often: the 1 s watchdog stays fed

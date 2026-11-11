@@ -50,15 +50,15 @@ function tableMapperVideoUI()
     uilabel(controlGrid, 'Text', 'Linear Speed v:');
     speedInput = uieditfield(controlGrid, 'numeric', 'Value', 70, 'Limits', [10, 255]);
 
-    uilabel(controlGrid, 'Text', 'Turn Speed omega:');
-    omegaInput = uieditfield(controlGrid, 'numeric', 'Value', 100, 'Limits', [10, 255]);
+    uilabel(controlGrid, 'Text', 'Turn speed (PWM):');
+    turnSpeedInput = uieditfield(controlGrid, 'numeric', 'Value', 100, 'Limits', [10, 255]);
 
     uilabel(controlGrid, 'Text', 'Turn Duration (s) for 90°:');
     turnTimeInput = uieditfield(controlGrid, 'numeric', 'Value', 0.5, 'Limits', [0.1, 5.0]);
 
     startMapBtn = uibutton(controlGrid, 'Text', 'Start Continuous Mapping & Video', ...
         'BackgroundColor', [0.4 0.8 0.4], ...
-        'ButtonPushedFcn', @(~,~) runPerpetualTableMapping(speedInput.Value, omegaInput.Value, turnTimeInput.Value));
+        'ButtonPushedFcn', @(~,~) runPerpetualTableMapping(speedInput.Value, turnSpeedInput.Value, turnTimeInput.Value));
     startMapBtn.Layout.Column = [1, 2];
 
     stopRoutineBtn = uibutton(controlGrid, 'Text', 'STOP ROUTINE', ...

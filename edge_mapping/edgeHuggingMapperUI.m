@@ -50,15 +50,15 @@ function edgeHuggingMapperUI()
     uilabel(controlGrid, 'Text', 'Linear Speed v:');
     speedInput = uieditfield(controlGrid, 'numeric', 'Value', 70, 'Limits', [10, 255]);
 
-    uilabel(controlGrid, 'Text', 'Turn Speed omega:');
-    omegaInput = uieditfield(controlGrid, 'numeric', 'Value', 100, 'Limits', [10, 255]);
+    uilabel(controlGrid, 'Text', 'Turn speed (PWM):');
+    turnSpeedInput = uieditfield(controlGrid, 'numeric', 'Value', 100, 'Limits', [10, 255]);
 
     uilabel(controlGrid, 'Text', 'Slight Left Turn Duration (s):');
     turnTimeInput = uieditfield(controlGrid, 'numeric', 'Value', 0.25, 'Limits', [0.05, 2.0]);
 
     startMapBtn = uibutton(controlGrid, 'Text', 'Start Perpetual Edge Hugging', ...
         'BackgroundColor', [0.4 0.8 0.4], ...
-        'ButtonPushedFcn', @(~,~) runEdgeHuggingRoutine(speedInput.Value, omegaInput.Value, turnTimeInput.Value));
+        'ButtonPushedFcn', @(~,~) runEdgeHuggingRoutine(speedInput.Value, turnSpeedInput.Value, turnTimeInput.Value));
     startMapBtn.Layout.Column = [1, 2];
 
     stopRoutineBtn = uibutton(controlGrid, 'Text', 'STOP ROUTINE', ...
