@@ -794,8 +794,10 @@ for k = 1:maxPhotos
     if phase ~= "start" && ~isBackStep, history(end+1, :) = move; end %#ok<AGROW>
 
     % 5. Give the photo to SLAM
+    % The camera photos are pale. More contrast (adapthisteq) gives about 2 times
+    % more corners. SLAM starts a map only on a photo with 1000 corners or more.
     % Wait until SLAM finishes this photo. Then the result below is complete.
-    addFrame(vslam, photo);
+    addFrame(vslam, adapthisteq(im2gray(photo)));
     waitTimer = tic;
     while ~isDone(vslam) && toc(waitTimer) < 20
         pause(0.02);
@@ -804,8 +806,9 @@ for k = 1:maxPhotos
         if numel(poses(vslam)) > 1
             phase = "circle";
             disp("The map started. The car moves on a circle.");
-        elseif k - resetAt >= 4
-            % No map after 4 photos: start again with a new SLAM object.
+        elseif k - resetAt >= 8
+            % No map after 8 photos (4 forward, 4 back): start again with a
+            % new SLAM object.
             % (Do not use reset(vslam): after it, each photo waits 20 s.)
             delete(vslam);
             vslam = monovslam(pinhole, MaxNumPoints = 1000, TrackFeatureRange = [30 120], ...
