@@ -190,6 +190,7 @@ classdef ElegooRobotCar < handle
 
         function frame = capture(obj)
             % Return one JPEG frame as a MATLAB image array.
+            % Photo address: http://<car IP>/capture (default http://192.168.4.1/capture).
             % On weak Wi-Fi a photo can arrive cut short. MATLAB then gives a
             % "Corrupt JPEG data" warning. We hide that warning and try again.
             jpegWarning = "MATLAB:imagesci:jpg:libraryMessage";
@@ -208,6 +209,10 @@ classdef ElegooRobotCar < handle
         end
 
         function url = streamURL(obj)
+            % Live video address: http://<car IP>/stream (default http://192.168.4.1/stream).
+            % Open it in a web browser while your computer is on the car Wi-Fi.
+            % Close it before you take photos: while the stream is open, the
+            % car cannot send /capture photos.
             url = obj.HttpBase + "/stream";
         end
 

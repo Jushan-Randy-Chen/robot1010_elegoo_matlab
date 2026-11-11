@@ -40,6 +40,11 @@ function results = visualSlamDemo(source, options)
 %     camera nothing to track. If the circle is too big, lower 'Circle inner PWM'.
 %   - The car moves in short stop-and-go steps (motor pulse, stop, photo): the
 %     ESP32 camera is slow and blurs while moving, and there are no encoders.
+%   - Camera addresses (connect your computer to the car Wi-Fi first):
+%       live video:   http://192.168.4.1/stream    (open it in a web browser)
+%       one photo:    http://192.168.4.1/capture
+%     Close the /stream page before you run this demo. While the stream is
+%     open, the car cannot send photos to MATLAB.
 
 arguments
     source (1,1) string = "robot"

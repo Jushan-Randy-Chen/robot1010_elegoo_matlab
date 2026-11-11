@@ -212,6 +212,7 @@ You can skip this for a first test. The demo then uses a 60-degree lens. Calibra
 - The sonar sends 0 when nothing is within about 5 m. The code uses 150 cm for it, as the simulator does.
 - The car accepts one connection at a time. Close the dashboard before you run the demo or the template.
 - `ElegooRobotCar` sets the photo size to 640 x 480 when it connects (`PhotoSize = 10`). Calibrate at that size.
+- Live video: open `http://192.168.4.1/stream` in a browser. One photo: `http://192.168.4.1/capture`. Close the stream before you run the demo. While the stream is open, the car cannot send photos to MATLAB.
 
 ## If something goes wrong
 
