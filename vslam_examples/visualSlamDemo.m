@@ -45,6 +45,10 @@ function results = visualSlamDemo(source, options)
 %       one photo:    http://192.168.4.1/capture
 %     Close the /stream page before you run this demo. While the stream is
 %     open, the car cannot send photos to MATLAB.
+%   - Each run saves a vslamRun_<date>_<time> folder: the photos (frames),
+%     debug.txt (settings, car info, messages, errors) and steps.csv (one line
+%     per step: photo check, battery, corners, SLAM status). If something goes
+%     wrong, look there first.
 
 arguments
     source (1,1) string = "robot"
@@ -61,7 +65,18 @@ for name = string(fieldnames(options.Config))'
 end
 isReplay = ~any(source == ["robot", "sim"]);
 
-% --- 1. Connect and check the sensors ---
+% --- 1. Run folder with the debug log, then connect and check the sensors ---
+runDir = "";
+runTimer = tic;
+if ~isReplay
+    runDir = "vslamRun_" + string(datetime("now", "Format", "yyyyMMdd_HHmmss"));
+    mkdir(fullfile(runDir, "frames"));
+    debugNote(runDir, "Run started: " + source + ", host " + options.Host + ", MATLAB " + version);
+    debugNote(runDir, "Settings: " + jsonencode(cfg));
+    writelines("step,time_s,phase,action,range_cm,battery_V,photo_tries,photo_diff,photo_s," + ...
+        "corners,slam_s,status,key_frames,map_started,lost_count,turned_deg", ...
+        fullfile(runDir, "steps.csv"));
+end
 robot = [];
 startMessages = strings(0, 1);
 try
@@ -83,9 +98,12 @@ try
         robot.setWatchdog(1000);           % motors stop if MATLAB stops talking
         robot.pan(90);                     % camera and sonar look straight ahead
         pause(0.5);
+        debugNote(runDir, "Car: " + carInfo(robot));
         [camK, startMessages] = startupCheck(robot, cfg);
     end
 catch ME
+    debugNote(runDir, "Could not start: " + getReport(ME, "extended", "hyperlinks", "off"));
+    safeClose(robot);
     if options.AutoRun, rethrow(ME); end
     uialert(uifigure, "Could not start (" + source + "): " + ME.message, "Connection Error");
     return
@@ -121,10 +139,7 @@ backedUp = false;
 phase = "start";                            % start -> circle -> scale
 isRunning = false;
 isBusy = false;
-runDir = "";
 if ~isReplay
-    runDir = "vslamRun_" + string(datetime("now", "Format", "yyyyMMdd_HHmmss"));
-    mkdir(fullfile(runDir, "frames"));
     rangeCm = readRange(robot);
 end
 
@@ -177,7 +192,7 @@ logArea = uitextarea(statusGrid, 'Editable', 'off', 'Value', "Ready.");
 infoGrid = uigridlayout(uipanel(rightGrid, 'Title', 'How it works'), [2, 1]);
 infoGrid.RowHeight = {'1x', 40};
 uitextarea(infoGrid, 'Editable', 'off', 'Value', [ ...
-    "Each step: motor pulse -> stop -> photo -> sonar -> SLAM."; ...
+    "Each step: motor pulse -> stop -> photos -> sonar -> SLAM."; ...
     "1. Start: 4 steps forward / 4 back until SLAM has a map (parallax)."; ...
     "2. Circle ~1.25 turns: SLAM measures the turn; back at the start it"; ...
     "   recognizes the place and closes the loop."; ...
@@ -335,17 +350,24 @@ end
             if isReplay
                 frame = imread(replay.frameFiles(k + 1));
                 newRange = replay.runLog.rangeCm(k + 1);
+                photo = struct("tries", 1, "diff", NaN, "sec", 0);
+                battery = NaN;
             else
                 move(robot, action, speedInput.Value, circleInput.Value, cfg);
-                frame = grabFrame(robot);
+                [frame, photo] = grabFrame(robot, cfg);
                 newRange = readRange(robot);
+                battery = readBatteryVolts(robot);
             end
         catch ME
             safeStop(robot);
             isRunning = false;
             isBusy = false;
+            debugNote(runDir, "Step failed: " + getReport(ME, "extended", "hyperlinks", "off"));
             logMsg("Step failed (" + ME.message + "). Car stopped; check Wi-Fi and battery.");
             return
+        end
+        if photo.diff >= cfg.photoAgree
+            logMsg("Photos keep coming out striped; using the last one. Charge the battery or restart the car.");
         end
         k = k + 1;
         rangeCm = newRange;
@@ -363,17 +385,25 @@ end
 
         % ---- Visual SLAM ----
         img = imresize(undistort(frame, camK), cfg.workSize);
-        addFrame(vslam, img);
+        % The ESP32 photos are pale and soft. Stronger local contrast (CLAHE)
+        % gives about 3x more corners; monovslam needs cfg.maxPoints corners in
+        % a photo before it can start a map.
+        slamImg = adapthisteq(im2gray(img));
+        corners = detectORBFeatures(slamImg);
         waitTimer = tic;                        % wait until SLAM finishes this photo
+        addFrame(vslam, slamImg);
         while ~isDone(vslam) && toc(waitTimer) < 20
             pause(0.02);
         end
+        slamSec = toc(waitTimer);
 
-        % No map yet after 4 photos? Not enough parallax: start over from here.
+        % No map after one sweep (4 forward, 4 back)? SLAM keeps comparing new
+        % photos with its first photo, and they now share too few corners: start
+        % over from here.
         if ~mapStarted
             if numel(poses(vslam)) > 1
                 mapStarted = true;
-            elseif k - photosBeforeMap >= cfg.startSweep
+            elseif k - photosBeforeMap >= 2 * cfg.startSweep
                 % Start over with a new SLAM object. (Do not use reset(vslam):
                 % after it, isDone never turns true and each photo waits 20 s.)
                 delete(vslam);
@@ -402,15 +432,26 @@ end
             heading = newHeading;
         end
 
-        updateView(img, action, status, camPoses);
+        % Debug log: one line per step in steps.csv.
+        if runDir ~= ""
+            writelines(sprintf("%d,%.1f,%s,%s,%g,%.2f,%d,%.3f,%.2f,%d,%.2f,%s,%d,%d,%d,%.0f", ...
+                k, toc(runTimer), phase, action, rangeCm, battery, photo.tries, photo.diff, ...
+                photo.sec, corners.Count, slamSec, status, runLog.keyFrames(k), mapStarted, ...
+                lostCount, turned), fullfile(runDir, "steps.csv"), WriteMode = "append");
+            if mod(k, 10) == 0 && isa(robot, "ElegooRobotCar")
+                debugNote(runDir, "Step " + k + ": " + carInfo(robot));
+            end
+        end
+
+        updateView(img, action, status, camPoses, corners);
         isBusy = false;
         ok = true;
     end
 
-    function updateView(img, action, status, camPoses)
+    function updateView(img, action, status, camPoses, corners)
         if ~isvalid(fig), return; end
         hImg.CData = img;
-        pts = selectStrongest(detectORBFeatures(im2gray(img)), 300);
+        pts = selectStrongest(corners, 300);
         set(hOrb, 'XData', pts.Location(:, 1), 'YData', pts.Location(:, 2));
         title(axCam, sprintf('Photo %d | %s | %s', k, action, status));
         set(hRange, 'XData', 1:k, 'YData', runLog.rangeCm(1:k));
@@ -443,7 +484,12 @@ end
             intrinsics = camK;                       % saved first, so a replay is always possible
             save(fullfile(runDir, "vslamRun.mat"), "log", "intrinsics", "cfg");
         end
-        [res, msgs, resultFig] = buildMap(vslam, photosBeforeMap, log, slamK, cfg, options.ShowUI);
+        try
+            [res, msgs, resultFig] = buildMap(vslam, photosBeforeMap, log, slamK, cfg, options.ShowUI);
+        catch ME
+            debugNote(runDir, "Building the map failed: " + getReport(ME, "extended", "hyperlinks", "off"));
+            rethrow(ME);
+        end
         for mapMsg = msgs'
             logMsg(mapMsg);
         end
@@ -467,6 +513,7 @@ end
 
     function logMsg(msg)
         fprintf("%s\n", msg);
+        debugNote(runDir, msg);
         if isvalid(fig)
             logArea.Value = ["[" + string(datetime("now", "Format", "HH:mm:ss")) + "] " + msg; ...
                 string(logArea.Value)];
@@ -499,9 +546,12 @@ cfg.circleOuter = 160;         %         outer wheels
 cfg.circleSec = 0.15;          % ~4 deg per step. In tests 6 deg per step lost
                                % tracking; TT motors are unreliable below ~0.1 s.
 cfg.settleSec = 0.15;          % let the car stop rocking before the photo
+cfg.photoTries = 6;            % photos per step until two in a row agree
+cfg.photoAgree = 0.12;         % two good photos differ by < 0.05 (simulator noise: < 0.11);
+                               % a photo with stripes differs by > 0.15
 
 % Auto run
-cfg.startSweep = 4;            % photos per map-start try (4 forward, 4 back)
+cfg.startSweep = 4;            % map start: 4 steps forward, 4 back (one try = 8 photos)
 cfg.newViewSteps = 4;          % small left turn every 24 photos without a map
 cfg.circleTurns = 1.25;        % one circle plus a quarter to revisit the start
 cfg.circleClearance = 45;      % back off if something is closer (cm)
@@ -516,7 +566,8 @@ cfg.maxRelocalizations = 6;    % lost again and again at one place: end the run
 cfg.maxSteps = 500;
 
 % monovslam and the map
-cfg.maxPoints = 1000;          % ORB corners per photo (2000+ is too slow)
+cfg.maxPoints = 1000;          % ORB corners per photo (2000+ is too slow). monovslam
+                               % starts a map only on a photo with this many corners.
 cfg.trackFeatureRange = [30 120];   % lost below 30 tracked corners; new key frame
                                     % below 120 (more key frames while turning)
 cfg.loopClosureThreshold = 40;
@@ -548,13 +599,85 @@ robot.stop();
 pause(cfg.settleSec);
 end
 
-function frame = grabFrame(robot)
+function [frame, photo] = grabFrame(robot, cfg)
+% The ESP32 camera sometimes turns the lower part of a photo into colored
+% stripes, and MATLAB does not notice. The car stands still here, so two good
+% photos in a row look the same. Take photos until two in a row agree.
+timer = tic;
+frame = capturePhoto(robot);
+difference = NaN;
+tries = 1;
+while tries < cfg.photoTries
+    previous = frame;
+    frame = capturePhoto(robot);
+    tries = tries + 1;
+    difference = photoDifference(previous, frame);
+    if difference < cfg.photoAgree
+        break
+    end
+end
+photo = struct("tries", tries, "diff", difference, "sec", toc(timer));
+end
+
+function frame = capturePhoto(robot)
 try
     frame = robot.capture();
 catch
     pause(0.3);                     % one retry if Wi-Fi hiccuped
     frame = robot.capture();
 end
+end
+
+function d = photoDifference(a, b)
+% How different two photos are (0 = the same), in the worst band of 16 rows.
+% Only color counts, so a change in brightness (auto exposure) does not.
+a = im2single(a);
+b = im2single(b);
+ca = a - mean(a, 3);
+cb = b - mean(b, 3);
+dd = abs((ca - mean(ca, [1 2])) - (cb - mean(cb, [1 2])));
+rowDiff = mean(sum(dd, 3), 2);                  % one value per photo row
+bands = floor(numel(rowDiff) / 16);
+d = max(mean(reshape(rowDiff(1:16 * bands), 16, bands), 1));
+end
+
+function v = readBatteryVolts(robot)
+% Battery voltage, NaN if there is no reply (the simulator has no battery).
+v = NaN;
+try
+    if ismethod(robot, "readBattery")
+        reply = robot.readBattery();
+        if isfield(reply, "battery"), v = double(reply.battery); end
+    end
+catch
+end
+end
+
+function text = carInfo(robot)
+% Car settings, battery and ESP32 state, for debug.txt.
+if isa(robot, "ElegooSimCar")
+    text = "simulator";
+    return
+end
+text = sprintf("PhotoSize=%d PhotoVFlip=%d PhotoMirror=%d SwapSides=%d, battery %.2f V", ...
+    robot.PhotoSize, robot.PhotoVFlip, robot.PhotoMirror, robot.SwapSides, readBatteryVolts(robot));
+try
+    text = text + ", ESP32 info " + jsonencode(robot.info());
+catch ME
+    text = text + ", ESP32 info failed: " + ME.message;
+end
+try
+    text = text + ", ESP32 status " + jsonencode(robot.status());
+catch ME
+    text = text + ", ESP32 status failed: " + ME.message;
+end
+end
+
+function debugNote(runDir, text)
+% Add a line to <runDir>/debug.txt, to find problems after a run.
+if runDir == "", return; end
+writelines("[" + string(datetime("now", "Format", "HH:mm:ss.SSS")) + "] " + text, ...
+    fullfile(runDir, "debug.txt"), WriteMode = "append");
 end
 
 function r = readRange(robot)
@@ -582,7 +705,7 @@ else
     K = [];
     calibMsg = "WARNING: no camera calibration; guessing a 60-degree lens. Run calibrateElegooCamera.";
 end
-frame = grabFrame(robot);
+[frame, photo] = grabFrame(robot, cfg);
 sz = size(frame, 1:2);
 if isempty(K)
     f = (sz(2) / 2) / tand(cfg.guessFovDeg / 2);
@@ -593,6 +716,9 @@ assert(abs(K.ImageSize(2) / K.ImageSize(1) - sz(2) / sz(1)) < 0.01, ...
 K = scaleIntrinsics(K, sz);
 r = readRange(robot);
 msgs = [calibMsg; sprintf("Camera %dx%d, ultrasonic %g cm.", sz(2), sz(1), r)];
+if photo.diff >= cfg.photoAgree
+    msgs(end+1) = "WARNING: the photos are striped. Charge the battery and restart the car.";
+end
 if sz(2) < 400
     msgs(end+1) = "WARNING: photos are smaller than 400x296; maps will start poorly.";
 end

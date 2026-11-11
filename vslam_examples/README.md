@@ -205,7 +205,12 @@ You can skip this for a first test. The demo then uses a 60-degree lens. Calibra
 
 11. In this folder, run `clear classes`, then run `visualSlamDemo()`. `clear classes` makes MATLAB use the newest version of `ElegooRobotCar.m`. Click **Start Auto Run**. The car drives forward and back until the map starts, then a circle, then straight to an object to measure the scale. Each photo takes 1 to 2 s; a run can take up to 15 minutes. Do not close the MATLAB windows. To stop: Ctrl+C, or lift the car and switch it off.
 12. When it ends, click **Finish & Build Map**.
-13. Keep `carCheck.mat` and the `vslamRun_...` folder. The folder has every photo and the run log; replay it with `visualSlamDemo("vslamRun_...")`.
+13. Keep `carCheck.mat` and the `vslamRun_...` folder. Replay a run with `visualSlamDemo("vslamRun_...")`. The folder has:
+    - `frames/`: every photo.
+    - `debug.txt`: the settings, the car and ESP32 state (every 10 steps), all messages and the full text of each error.
+    - `steps.csv`: one line for each step: action, sonar, battery voltage, photo check, corners, SLAM status and map size.
+
+    The demo writes these files during the run, so they are complete also if MATLAB stops with an error.
 
 **Good to know**
 
@@ -222,6 +227,7 @@ You can skip this for a first test. The demo then uses a 60-degree lens. Calibra
 | `Photo still corrupt after 5 tries ...`. The car stops. | `ElegooRobotCar` tried 5 times to get a good photo. See the row above. A `/stream` page is open. | Do the steps in the row above. Close the `/stream` page. Start the run again. |
 | The bottom of the photo is gray. | The Wi-Fi signal is weak, and the photo did not arrive completely. | Put the computer near the car. |
 | `Camera 640x480` or another size than 400x296 at the start. | `PhotoSize` at the top of `ElegooRobotCar.m` is not 8. | Set `PhotoSize = 8`. Then run `clear classes`. |
+| `Photos keep coming out striped` or `the photos are striped`. | The camera breaks the lower part of the photos into stripes. The demo takes photos until two in a row are the same, up to 6. | Charge the battery. Switch the car off and on. |
 | `No map: SLAM never started`. | The photos are bad, or the room has too few corners. | Look at the photos in the `vslamRun_...` folder. If they are bad, see the first row. If they are clear, add objects with detail around the area. |
 
 ## Rebuild the student kit
