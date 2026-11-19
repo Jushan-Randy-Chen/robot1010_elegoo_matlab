@@ -11,7 +11,6 @@ edge_mapping/             Table-edge mapper UIs (IR + sonar)
 camera_recording/         Save camera frames as a GIF or an MP4
 control_simulations/      Feedback-control simulations (Live Scripts), no car needed
 vslam_examples/           Simulator, student mapping template, visual SLAM demo
-tools/                    makeStudentKit.m (student zip in dist/, not in git)
 ```
 
 | Folder | Contents |
@@ -80,16 +79,9 @@ To stop the car: press Ctrl+C in MATLAB. The motors stop 1 s after MATLAB stops 
 
 If the photos are colored stripes, charge the battery. For this and other problems, see [If something goes wrong](vslam_examples/README.md#if-something-goes-wrong).
 
-## Student kit
+## Student guide
 
-Students get one flat folder with only the files the template needs:
-
-```matlab
-cd tools
-makeStudentKit        % -> dist/ElegooMappingKit.zip
-```
-
-The kit has `elegooMappingTemplate.m`, `ElegooRobotCar.m`, `ElegooSimCar.m`, `simAssets/`, `calibrateElegooCamera.m`, `docs/images/` and `README.md`. The README of [vslam_examples](vslam_examples/README.md) is the only student guide. It uses ASD-STE100 Simplified Technical English. Students do each task in the simulator first, then on the real car. Before the first real-car session, do the real-car steps in that README.
+Students download or clone this repository from GitHub. The README of [vslam_examples](vslam_examples/README.md) is the only student guide. It uses ASD-STE100 Simplified Technical English. Students do each task in the simulator first, then on the real car. Before the first real-car session, do the real-car steps in that README.
 
 ## Safety
 

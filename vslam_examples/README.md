@@ -2,7 +2,7 @@
 
 Mapping and localization with the car's own sensors: ultrasonic sensor (sonar), ESP32 camera and gyro. Everything runs in a pure-MATLAB simulator first, then on the real car.
 
-**Contents:** [Files](#files) · [What is visual SLAM?](#what-is-visual-slam) · [How the five tasks build up](#how-the-five-tasks-build-up-to-slam) · [Task 5 step by step](#task-5-step-by-step) · [Quick start](#quick-start) · [Simulator results](#simulator-results-matlab-r2026b) · [Real car, step by step](#visual-slam-on-the-real-car-step-by-step) · [If something goes wrong](#if-something-goes-wrong) · [Rebuild the student kit](#rebuild-the-student-kit)
+**Contents:** [Files](#files) · [What is visual SLAM?](#what-is-visual-slam) · [How the five tasks build up](#how-the-five-tasks-build-up-to-slam) · [Task 5 step by step](#task-5-step-by-step) · [Quick start](#quick-start) · [Simulator results](#simulator-results-matlab-r2026b) · [Real car, step by step](#visual-slam-on-the-real-car-step-by-step) · [If something goes wrong](#if-something-goes-wrong)
 
 <p align="center">
   <img src="docs/images/task5_live_view.gif" width="720" alt="Task 5 live view: the camera photo (left) and the SLAM map and camera path growing as the car drives a circle (right)">
@@ -18,7 +18,7 @@ Mapping and localization with the car's own sensors: ultrasonic sensor (sonar), 
 | `ElegooSimCar.m` | Simulator: a furnished 5 m x 4 m living room. It has the same commands as `ElegooRobotCar`. |
 | `simAssets/` | Room textures for the simulator (AWS RoboMaker Small House World, MIT-0). |
 | `calibrateElegooCamera.m` | One-time checkerboard calibration of the ESP32 camera. |
-| `README.md` | This file. It is the only guide for students and TAs. The student kit also contains it. |
+| `README.md` | This file. It is the only guide for students and TAs. |
 | `docs/images/` | Example figures from the simulator. This README uses them. |
 
 ## Requirements
@@ -236,10 +236,3 @@ You can skip this for a first test. The demo then uses a 60-degree lens. Calibra
 | `Camera 640x480` or another size than 400x296 at the start. | `PhotoSize` at the top of `ElegooRobotCar.m` is not 8. | Set `PhotoSize = 8`. Then run `clear classes`. |
 | `Photos keep coming out striped` or `the photos are striped`. | The camera breaks the lower part of the photos into stripes. The demo takes photos until two in a row are the same, up to 6. | Charge the battery. Switch the car off and on. |
 | `No map: SLAM never started`. | The photos are bad, or the room has too few corners. | Look at the photos in the `vslamRun_...` folder. If they are bad, see the first row. If they are clear, add objects with detail around the area. |
-
-## Rebuild the student kit
-
-```matlab
-cd tools
-makeStudentKit        % -> dist/ElegooMappingKit.zip (no top folder: one folder after unzip)
-```
