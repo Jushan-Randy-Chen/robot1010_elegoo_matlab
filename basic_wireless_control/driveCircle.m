@@ -2,13 +2,6 @@ function log = driveCircle(robot, v, turn, T)
 % DRIVECIRCLE  Drive on a circle for T seconds and log the gyro.
 %   log = driveCircle(robot)                % v = 100, turn = 30, T = 5
 %   log = driveCircle(robot, v, turn, T)
-% Differential drive in PWM units (-255 to 255):
-%   left wheels  = v - turn
-%   right wheels = v + turn
-% turn > 0 turns left. turn is a PWM difference, NOT an angular velocity
-% in rad/s. This function measures the angular velocity with the gyro, and
-% gives log.degPerSecPerPWM: the turn rate that 1 PWM unit of turn gives.
-% Make sure that there is 1.5 m of clear floor around the car.
 arguments
     robot
     v (1,1) double = 100
@@ -42,8 +35,7 @@ if isa(robot, "ElegooSimCar")
 end
 rateDeg = gyroZ / rawPerDegS;
 
-% Steady-state turn rate: use the second half of the run only. In the
-% first half, the speed of the car increases from 0.
+% Steady-state turn rate: use the second half of the run only.
 steady = t >= T / 2;
 meanRateDeg = mean(rateDeg(steady));
 actualTurn = (right - left) / 2;         % the turn value after saturation

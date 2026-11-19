@@ -1,106 +1,38 @@
 %% ELEGOO SMART ROBOT CAR V4: MAP AND POSITION TEMPLATE
 % ROBT 1010 Intro to Robotics Engineering.
-% The comments in this file use ASD-STE100 Simplified Technical English.
+% Tasks: 1 read the sensors, 2 calibrate the motion, 3 sonar map,
+%        4 square path and map, 5 camera map with visual SLAM.
 %
-% =========================================================================
-% SUMMARY
-% =========================================================================
-% PURPOSE
-%   This file shows the two basic functions of a mobile robot:
-%     - Localization: the robot calculates its position and its heading.
-%     - Mapping: the robot makes a map of the objects near it.
-%   The car does these functions with its sensors. It does not use a GPS.
-%   Task 1 to task 5 start with one sensor and end with visual SLAM
-%   (Simultaneous Localization And Mapping). Visual SLAM makes a map and
-%   finds the car in the map at the same time.
-%
-% SENSORS
-%   Sensor              Part on the car       Measures                     Tasks
-%   ------------------  --------------------  ---------------------------  ---------
-%   Ultrasonic sensor   HC-SR04 module, on    Distance to the nearest      1 2 3 4 5
-%   (sonar)             the pan servo head    object, 2 cm to 150 cm
-%   Camera              ESP32 camera module,  Photos (400 x 296 pixels).   1 2 4 5
-%                       on the pan servo head The computer finds corners
-%                                             in the photos.
-%   Gyro                MPU-6050 IMU          Turn rate of the car around  1
-%                                             the vertical axis
-%
-% PARTS THAT MOVE THE CAR (ACTUATORS)
-%   Motors (4)          DC gear motors. The PWM value sets the motor power.
-%   Pan servo           Turns the sensor head (sonar and camera) to the
-%                       left and to the right.
-%
-% WHAT EACH TASK DOES
-%   1  Read the sensors. Find the range and the noise of each sensor.
-%   2  Calibrate the motion. Measure one forward step (sonar) and one turn
-%      step (camera).
-%   3  Make a sonar map from one position (occupancy grid).
-%   4  Move the car in a square. Calculate the position from the steps and
-%      the camera (dead reckoning). Make a sonar map.
-%   5  Make a camera map with visual SLAM. The sonar measures the scale.
-%   Do the tasks in sequence. Task 4 uses the results of task 2.
-%
-% =========================================================================
 % HOW TO USE THIS FILE
-% =========================================================================
 %   1. Set the MATLAB current folder to the folder of this file.
-%      If MATLAB shows a message with "Change Folder" and "Add to Path"
-%      when you click Run, click "Change Folder".
-%   2. Set TASK (below) to the number of the task.
-%   3. Do the task in the simulator first: set USE_SIMULATOR = true.
-%      The simulator is a living room in MATLAB. The car is not necessary.
-%   4. Click Run. You can also push F5 (some laptops and Macs: Fn+F5).
-%   5. Read the results. Answer the questions in the task section.
-%   6. Then do the same task on the real car:
-%      a. Connect the computer to the Wi-Fi network of YOUR car. Each car
-%         has a different network name ("ELEGOO-..."). Ask your TA.
-%      b. Set USE_SIMULATOR = false.
-%      c. Click Run.
-%   7. Compare the results of the simulator and the real car.
+%   2. Set TASK (below). Start with USE_SIMULATOR = true, then click Run (F5).
+%   3. Then do the same task on the real car: connect to the Wi-Fi of YOUR car
+%      ("ELEGOO-..."), set USE_SIMULATOR = false and click Run.
+%   Do task 2 on the real car before task 4 on the real car.
 %
-% NOTE: README.md shows example figures (for example "Task 3, Figure 3.1").
-% NOTE: The simulator car and the real car are not the same. Do task 2 on
-%       the real car before task 4 on the real car. Write the results of
-%       the real car in SETTINGS.
+% CAUTION: OPERATE THE CAR ON THE FLOOR ONLY, AWAY FROM STAIRS AND TABLE EDGES.
+% CAUTION: KEEP 1 m x 1 m OF FLOOR CLEAR (2.5 m x 2.5 m FOR TASK 5), ALSO BEHIND THE CAR.
+% CAUTION: TO STOP THE CAR, PUSH CTRL+C. IF IT DOES NOT STOP, LIFT IT AND SWITCH IT OFF.
 %
-% CAUTION: KEEP THE CAR AWAY FROM STAIRS AND TABLE EDGES.
-%          THE CAR CAN FALL AND BREAK.
-% CAUTION: OPERATE THE CAR ON THE FLOOR ONLY. DO NOT OPERATE IT ON A TABLE.
-% CAUTION: KEEP A CLEAR FLOOR AREA OF 1 m x 1 m (2.5 m x 2.5 m FOR TASK 5).
-%          IF THE FLOOR IS NOT CLEAR, THE CAR CAN HIT AN OBJECT.
-% CAUTION: THE CAR MOVES BACK WITHOUT A SENSOR. KEEP THE FLOOR BEHIND THE
-%          CAR CLEAR.
-% CAUTION: TO STOP THE CAR, PUSH CTRL+C IN THE COMMAND WINDOW. IF THE CAR
-%          DOES NOT STOP, LIFT THE CAR. SET THE POWER SWITCH TO OFF.
-%
-% NOTE: The car moves in short steps: motor pulse, stop, measure.
-%       The car has no wheel encoders. Photos are not clear when the car moves.
-% NOTE: Keep these files in the same folder as this file:
-%         ElegooRobotCar.m         Commands for the real car (Wi-Fi)
-%         ElegooSimCar.m           The simulator car and room
-%         simAssets folder         Photos of the surfaces in the simulated room
-%         calibrateElegooCamera.m  Camera calibration for task 5 (real car)
-% NOTE: This file uses the Computer Vision Toolbox and the Image
-%       Processing Toolbox.
+% Requires MATLAB R2024a or newer with the Computer Vision Toolbox and the
+% Image Processing Toolbox. Keep ElegooRobotCar.m, ElegooSimCar.m and the
+% simAssets folder in the same folder as this file (or ../basic_wireless_control).
 
 TASK = 1;                  % Task number: 1, 2, 3, 4 or 5
 USE_SIMULATOR = true;      % true = simulated room. false = real car.
 
 %% SETTINGS
 % Change these values for your car.
-% Task 2 measures S.cmPerStep and S.degPerTurn. Write the results here.
 
 S.host = "192.168.4.1";         % IP address of the car
 
 % One step is [left motor PWM, right motor PWM, time in seconds].
-% PWM is the motor power: -255 (full reverse) to 255 (full forward).
 S.forward  = [100 100 0.30];    % One step forward (approximately 5 cm to 8 cm)
 S.backward = [-100 -100 0.30];  % One step back
 S.turnLeft = [-130 130 0.10];   % One turn step to the left, in place (approximately 10 to 20 degrees)
 S.circle   = [135 160 0.15];    % One step on a large circle to the left (task 5)
 S.settleSec = 0.2;              % Time to wait after a stop. The car must not move when it takes a photo.
-% NOTE: The Wi-Fi delay adds time to each motor pulse. Thus the size of a
-%       step can change a little from step to step.
+% NOTE: The Wi-Fi delay adds time to each motor pulse.
 
 % Results of task 2
 S.cmPerStep  = 5;               % Distance of one forward step (cm)
@@ -129,10 +61,8 @@ fprintf("The results are in the variable ""result"" in the Workspace.\n");
 
 %% ========================================================================
 %  TASK 1: READ THE SENSORS
-%  ========================================================================
 function result = runTask(car, S, task)
-% Do one task. onCleanup stops the motors when the task ends, when an
-% error occurs, and when you push Ctrl+C.
+% Do one task.
 stopAtEnd = onCleanup(@() safeStop(car));
 switch task
     case 1, result = task1_readSensors(car, S);
@@ -240,7 +170,6 @@ end
 
 %% ========================================================================
 %  TASK 2: CALIBRATE THE MOTION
-%  ========================================================================
 function result = task2_calibrate(car, S)
 % PURPOSE
 %   The car has no wheel encoders. To calculate its position, the car counts
@@ -277,7 +206,6 @@ if ~(cm > 70 && cm < 130)
 end
 
 % 2. Length of one step: the sonar is the ruler.
-%    The car stops if it comes nearer than 30 cm to the object.
 nSteps = 8;
 before = readSonar(car, S, 5);             % Median of 5 values: less noise
 nForward = 0;
@@ -300,12 +228,7 @@ cmPerStepBack = (back - after) / nForward;
 fprintf("Sonar: %g cm -> %g cm -> %g cm\n", before, after, back);
 fprintf("One step forward = %.1f cm. One step back = %.1f cm.\n", cmPerStep, cmPerStepBack);
 
-% 3. Angle of one turn step. The car turns in place, one step at a time.
-%    a. The camera measures the angle of each step (as in task 4).
-%       The car stops when the sum of the angles is approximately 400 degrees.
-%    b. Near 360 degrees, find the photo that matches the first photo best.
-%       At this photo, the car is at the first view again.
-%    The sum in step a can have a small error. Step b does not have this error.
+% 3. Angle of one turn step.
 first = takePhoto(car);
 previous = first;
 photos = {};
@@ -391,7 +314,6 @@ end
 
 %% ========================================================================
 %  TASK 3: MAKE A SONAR MAP FROM ONE POSITION
-%  ========================================================================
 function result = task3_sonarMap(car, S)
 % PURPOSE
 %   The sonar is on a servo (the "pan" servo). The servo turns the sensor
@@ -435,7 +357,7 @@ end
 car.pan(90);
 angles = sensorAngle(pans, S);          % 0 = forward, positive = left
 
-% 3. Points and occupancy grid. The origin is the wheel axle of the car.
+% 3. Points and occupancy grid.
 isEcho = ranges < S.sonarMaxCm - 5;     % 150 cm = no object in range
 x = S.sensorAheadCm + ranges .* cosd(angles);
 y = ranges .* sind(angles);
@@ -473,7 +395,6 @@ end
 
 %% ========================================================================
 %  TASK 4: MOVE IN A SQUARE, CALCULATE THE POSITION AND MAKE A MAP
-%  ========================================================================
 function result = task4_squareMap(car, S)
 % PURPOSE
 %   The car moves in a square. After each step, it calculates its pose
@@ -526,7 +447,7 @@ for corner = 1:4
     car.pan(90);
     pause(0.3);
 
-    % 2. Move along one side. Add one sonar value at each step.
+    % 2. Move along one side.
     for i = 1:side
         range = readSonar(car, S, 3);
         map = addReading(map, x, y, heading, range, S);
@@ -539,10 +460,7 @@ for corner = 1:4
         truePath(end+1, :) = p(1:2); %#ok<AGROW>
     end
 
-    % 3. Turn 90 degrees to the left. The camera measures each turn step.
-    %    The car turns until the calculated heading is near the target
-    %    heading. This is feedback control.
-    %    The car does not turn more than 2 times the usual number of steps.
+    % 3. Turn 90 degrees to the left.
     target = 90 * corner;
     photo = takePhoto(car);
     maxTurnSteps = 2 * round(90 / S.degPerTurn) + 2;
@@ -598,7 +516,6 @@ end
 
 %% ========================================================================
 %  TASK 5: MAKE A CAMERA MAP WITH VISUAL SLAM
-%  ========================================================================
 function result = task5_visualSlam(car, S)
 % PURPOSE
 %   Visual SLAM makes a map and finds the car in the map at the same time.
@@ -663,7 +580,7 @@ else
 end
 assert(isequal(camera.ImageSize, imageSize), ...
     "Calibrate the camera at the photo size (%d x %d).", imageSize(2), imageSize(1));
-% The photos are corrected for lens distortion. SLAM then uses a perfect camera.
+% The photos are corrected for lens distortion.
 pinhole = cameraIntrinsics(camera.FocalLength, camera.PrincipalPoint, camera.ImageSize);
 vslam = monovslam(pinhole, MaxNumPoints = 1000, TrackFeatureRange = [30 120], ...
     LoopClosureThreshold = 40);
@@ -700,8 +617,7 @@ for k = 1:maxPhotos
     % 3. Select the next step
     isBackStep = false;
     if wasLost && lostCount == 0
-        % SLAM found the position again. After each new loss, the car can
-        % again do 8 steps back and 25 circle steps.
+        % SLAM found the position again.
         wasLost = false;
         foundAgain = foundAgain + 1;
         backStepsLeft = 8;
@@ -715,11 +631,6 @@ for k = 1:maxPhotos
     end
     if phase ~= "start" && lostCount >= 2
         % SLAM cannot find the position of the car.
-        %  - The first time: move back along the path to the last place
-        %    where SLAM found the position.
-        %  - If SLAM loses the position again on the circle, this place has
-        %    too few corners. Continue on the circle past this place. Later,
-        %    SLAM can identify a known place.
         wasLost = true;
         driveOn = phase == "circle" && (foundAgain >= 1 || backStepsLeft == 0 || isempty(history));
         if ~driveOn && backStepsLeft > 0 && ~isempty(history)
@@ -736,7 +647,7 @@ for k = 1:maxPhotos
             break
         end
     elseif phase == "start"
-        % 4 steps forward, then 4 steps back. Change the view after 24 photos.
+        % 4 steps forward, then 4 steps back.
         if mod(k - 1, 8) < 4 && range > 25
             move = S.forward;
         else
@@ -764,7 +675,6 @@ for k = 1:maxPhotos
         end
     else
         % Scale: move back until the object is 120 cm away (10 steps or less).
-        % Then move to the object until it is 50 cm away (30 steps in total).
         scaleSteps = scaleSteps + 1;
         if ~backedUp && range < 120 && scaleSteps <= 10
             move = S.backward;
@@ -794,9 +704,7 @@ for k = 1:maxPhotos
     if phase ~= "start" && ~isBackStep, history(end+1, :) = move; end %#ok<AGROW>
 
     % 5. Give the photo to SLAM
-    % The camera photos are pale. More contrast (adapthisteq) gives about 2 times
-    % more corners. SLAM starts a map only on a photo with 1000 corners or more.
-    % Wait until SLAM finishes this photo. Then the result below is complete.
+    % The camera photos are pale.
     addFrame(vslam, adapthisteq(im2gray(photo)));
     waitTimer = tic;
     while ~isDone(vslam) && toc(waitTimer) < 20
@@ -809,7 +717,6 @@ for k = 1:maxPhotos
         elseif k - resetAt >= 8
             % No map after 8 photos (4 forward, 4 back): start again with a
             % new SLAM object.
-            % (Do not use reset(vslam): after it, each photo waits 20 s.)
             delete(vslam);
             vslam = monovslam(pinhole, MaxNumPoints = 1000, TrackFeatureRange = [30 120], ...
                 LoopClosureThreshold = 40);
@@ -823,7 +730,7 @@ for k = 1:maxPhotos
     end
     statuses(k) = status;
 
-    % 6. Heading from the newest key frame. Add the angle of the circle.
+    % 6. Heading from the newest key frame.
     if phase ~= "start" && hasNewKeyFrame(vslam)
         camPoses = poses(vslam);
         R = camPoses(end).R;            % Camera axes: x right, y down, z forward
@@ -848,8 +755,7 @@ for k = 1:maxPhotos
         xlabel(axTop, "forward (SLAM units)");
         ylabel(axTop, "left (SLAM units)");
         legend(axTop, "Location", "southoutside", "NumColumns", 2);
-        % Some map points have large errors and are very far away. Set the axis
-        % limits from the middle 96% of the points and the key frames.
+        % Some map points have large errors and are very far away.
         P = sort([X(:, 3), -X(:, 1); C(:, 3), -C(:, 1)]);
         lo = P(max(1, round(0.02 * size(P, 1))), :);
         hi = P(max(1, round(0.98 * size(P, 1))), :);
@@ -871,9 +777,7 @@ while ~isDone(vslam) && toc(waitTimer) < 60
     pause(0.2);
 end
 
-% 7. Scale. When the car moves straight to an object, the sonar distance
-%    decreases by the distance that the car moves. A line fit of
-%    (sonar distance) against (SLAM distance) gives cm per SLAM unit.
+% 7. Scale.
 [camPoses, viewIds] = poses(vslam);
 if numel(camPoses) < 3
     error("SLAM did not make a map. Add objects with texture, calibrate the camera, or move to a different room.");
@@ -907,8 +811,7 @@ if stopReason ~= ""
     scaleText = scaleText + " STOPPED EARLY.";
 end
 
-% 8. Top view of the map in cm. Show the map in the frame of the first key
-%    frame: the map starts at (0, 0) and the car points forward (+x).
+% 8. Top view of the map in cm.
 R1 = camPoses(1).R;
 t1 = camPoses(1).Translation;
 toFirstFrame = @(P) (P - t1) * R1;              % World points to the first camera frame
@@ -966,11 +869,8 @@ end
 
 %% ========================================================================
 %  HELPER FUNCTIONS (all tasks use these functions)
-%  ========================================================================
 function [car, S] = connectCar(useSimulator, S, task)
-% Connect to the real car or to the simulator. Both have the same commands.
-% In the simulator, tasks 1 to 4 start near furniture (the sonar range is short).
-% Task 5 starts in the open middle of the room (the car moves on a circle).
+% Connect to the real car or to the simulator.
 if useSimulator
     if task == 5
         car = ElegooSimCar("Pose", [2.6 1.15 0]);   % [x m, y m, heading rad] in the room
@@ -979,8 +879,7 @@ if useSimulator
     end
     S.cameraFovDeg = car.HorizontalFovDeg;   % The simulator camera is known exactly
 else
-    % Find ElegooRobotCar.m. In the student kit, it is in this folder. In the
-    % course repository, it is in the basic_wireless_control folder.
+    % Find ElegooRobotCar.m.
     if exist("ElegooRobotCar", "file") ~= 2
         addpath(fullfile(fileparts(mfilename("fullpath")), "..", "basic_wireless_control"));
     end
@@ -1009,7 +908,7 @@ end
 end
 
 function safeStop(car)
-% Stop the motors. If the connection has a problem, do not show a second error.
+% Stop the motors.
 try
     car.stop();
 catch
@@ -1018,7 +917,6 @@ end
 
 function stepCar(car, move, S)
 % Do one step: motor pulse, stop, then wait until the car does not move.
-% move = [left PWM, right PWM, time in seconds]
 car.drive(move(1), move(2));
 pause(move(3));
 car.stop();
@@ -1026,9 +924,7 @@ pause(S.settleSec);
 end
 
 function cm = readSonar(car, S, n)
-% Read the sonar n times. Give the median distance (cm). NaN = no answer.
-% The real sonar sends 0 when no echo comes back (no object in range).
-% This function then gives S.sonarMaxCm, as the simulator does.
+% Read the sonar n times.
 if nargin < 3, n = 1; end
 values = nan(1, n);
 for i = 1:n
@@ -1042,8 +938,7 @@ cm = median(values, "omitnan");
 end
 
 function photo = takePhoto(car)
-% Take one photo. If the Wi-Fi connection has a short problem, take the
-% photo again one time.
+% Take one photo.
 try
     photo = car.capture();
 catch
@@ -1054,16 +949,11 @@ end
 
 function [deg, nMatches, p1, p2] = turnFromPhotos(photo1, photo2, S)
 % Calculate the turn of the car between two photos (visual odometry).
-% deg > 0: the car turned to the LEFT. deg = NaN: not enough corners match.
-% Method: find the same corners in the two photos. The direction to a corner is
-%   atan(pixels from the image center / focal length).
-% When the car turns 10 degrees, all directions change by 10 degrees.
 g1 = im2gray(photo1);
 g2 = im2gray(photo2);
 [f1, c1] = extractFeatures(g1, detectORBFeatures(g1));
 [f2, c2] = extractFeatures(g2, detectORBFeatures(g2));
-% The photos of the car have noise. With these MatchThreshold and MaxRatio
-% values, the function finds more matches.
+% The photos of the car have noise.
 pairs = matchFeatures(f1, f2, Unique = true, MatchThreshold = 40, MaxRatio = 0.8);
 p1 = c1.Location(pairs(:, 1), :);       % One corner in photo 1 ...
 p2 = c2.Location(pairs(:, 2), :);       % ... and the same corner in photo 2
@@ -1087,10 +977,7 @@ end
 end
 
 function map = newMap(sizeCm, cellCm)
-% Make an empty occupancy grid. The start position of the car is the center.
-% Each cell records two counts:
-%   hits   = number of sonar beams that stopped in the cell (an object)
-%   misses = number of sonar beams that went through the cell (free)
+% Make an empty occupancy grid.
 n = ceil(sizeCm / cellCm);
 map.cellCm = cellCm;
 map.cornerCm = -n * cellCm / 2;         % x and y of the lower-left corner
@@ -1099,7 +986,7 @@ map.misses = zeros(n, n);
 end
 
 function map = addReading(map, x, y, headingDeg, rangeCm, S)
-% Add one sonar value at the calculated pose. The sensor is ahead of the axle.
+% Add one sonar value at the calculated pose.
 sx = x + S.sensorAheadCm * cosd(headingDeg);
 sy = y + S.sensorAheadCm * sind(headingDeg);
 map = addSonarRay(map, sx, sy, headingDeg, rangeCm, S);
@@ -1107,9 +994,6 @@ end
 
 function map = addSonarRay(map, xCm, yCm, angleDeg, rangeCm, S)
 % Add one sonar beam to the occupancy grid.
-% The beam is approximately 15 degrees wide. The cells in the beam are free.
-% The cell at the end of the beam center is occupied. If no object is in
-% range, all cells in the beam are free.
 if isnan(rangeCm), return; end
 freeCm = min(rangeCm, S.sonarMaxCm) - map.cellCm;
 [d, a] = meshgrid(0:map.cellCm / 2:freeCm, angleDeg + (-7.5:2.5:7.5));   % Points in the beam
@@ -1126,7 +1010,7 @@ end
 end
 
 function [row, col] = cellOf(map, x, y)
-% Find the cell that contains the point (x, y). NaN = the point is outside the map.
+% Find the cell that contains the point (x, y).
 n = size(map.hits, 1);
 col = floor((x - map.cornerCm) / map.cellCm) + 1;
 row = floor((y - map.cornerCm) / map.cellCm) + 1;
@@ -1151,9 +1035,6 @@ end
 
 function pose = truePose(car, start)
 % SIMULATOR ONLY: the true pose of the car [x cm, y cm, heading deg].
-%   truePose(car)          gives the pose in the room.
-%   truePose(car, start)   gives the pose from the start pose (x = start direction).
-% The real car gives NaN. Use a tape measure for the real car.
 if ~isa(car, "ElegooSimCar")
     pose = [NaN NaN NaN];
     return
@@ -1174,7 +1055,6 @@ end
 
 function h = drawSimRoom(car, start, ax)
 % SIMULATOR ONLY: draw the true walls and furniture (green) to check the map.
-% h is one line for the legend. On the real car, h is empty.
 h = gobjects(1, 0);
 if ~isa(car, "ElegooSimCar"), return; end
 tmp = figure("Visible", "off");
@@ -1197,8 +1077,7 @@ end
 function tl = labeledFigure(car, task, number, titleText, layout, position)
 % Make one figure with a clear label, for example
 %   "Task 3, Figure 3.1: Sonar map from one position"
-% The subtitle shows the data source (simulator or real car). Each panel
-% in the figure has a letter: (a), (b), (c), (d).
+% The subtitle shows the data source (simulator or real car).
 source = "real car";
 if isa(car, "ElegooSimCar")
     source = "simulator";
@@ -1211,8 +1090,7 @@ subtitle(tl, "Data from the " + source);
 end
 
 function file = calibrationFile()
-% Find elegooCameraIntrinsics.mat (from calibrateElegooCamera). Look first in
-% the folder of this file, then in the MATLAB current folder.
+% Find elegooCameraIntrinsics.mat (from calibrateElegooCamera).
 file = fullfile(fileparts(mfilename("fullpath")), "elegooCameraIntrinsics.mat");
 if ~isfile(file)
     file = fullfile(pwd, "elegooCameraIntrinsics.mat");

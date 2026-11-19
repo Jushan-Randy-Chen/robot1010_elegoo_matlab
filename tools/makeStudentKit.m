@@ -2,12 +2,7 @@ function zipFile = makeStudentKit()
 % MAKESTUDENTKIT  Build the self-contained student kit and its zip file.
 %   zipFile = makeStudentKit()
 % The kit is a flat folder: the template finds all of its files in the
-% same folder. Output: dist/ElegooMappingKit/ and dist/ElegooMappingKit.zip
-% (the dist folder is not in git).
-%
-% The zip file has no top folder. Windows "Extract All" and the Mac Finder
-% both make one folder ElegooMappingKit (no folder in a folder).
-% The student instructions are vslam_examples/README.md.
+% same folder.
 
 root = fileparts(fileparts(mfilename("fullpath")));
 basic = fullfile(root, "basic_wireless_control");
@@ -21,7 +16,7 @@ end
 mkdir(kit);
 
 copyfile(fullfile(basic, "ElegooRobotCar.m"), kit);
-for name = ["elegooMappingTemplate.m", "ElegooSimCar.m", "calibrateElegooCamera.m", "README.md"]
+for name = ["elegooMappingTemplate.m", "visualSlamDemo.m", "ElegooSimCar.m", "calibrateElegooCamera.m", "README.md"]
     copyfile(fullfile(vslam, name), kit);
 end
 copyfile(fullfile(vslam, "simAssets"), fullfile(kit, "simAssets"));

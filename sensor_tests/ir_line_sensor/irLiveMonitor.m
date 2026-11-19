@@ -1,17 +1,7 @@
 function liveLog = irLiveMonitor(robot, durationSec, options)
 % Live ui of the three IR line sensors with the motors off. It shows the
-% raw readings, the firmware's onLine flags and the steering decision that
-% the line tracker would make (see lineTrackerDecision). Slide black tape
-% under the sensors and watch the decision change. Close the figure to stop.
-%
-%   robot = ElegooRobotCar("192.168.4.1");
 %   liveLog = irLiveMonitor(robot, 30);
-%
-%   robot = ElegooSimIRCar();  robot.setSurface("track");   % moving tape strip
 %   liveLog = irLiveMonitor(robot, 10);
-%
-% liveLog is a table: Time (s), IR (ADC counts), OnLine (0/1), Decision.
-% Sensor order is [left middle right].
 
 arguments
     robot
@@ -84,7 +74,6 @@ liveLog = table(times(1:count), irLog(1:count, :), onLineLog(1:count, :), decisi
 fprintf("Live IR check done: %d readings in %.1f s.\n", count, toc(clock));
 end
 
-% ======================================================================
 
 function ui = createView(threshold, windowSec)
 colors = [0.165 0.471 0.839; 0.922 0.408 0.204; 0.106 0.686 0.478];  % left, middle, right

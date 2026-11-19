@@ -21,6 +21,13 @@ Mapping and localization with the car's own sensors: ultrasonic sensor (sonar), 
 | `README.md` | This file. It is the only guide for students and TAs. The student kit also contains it. |
 | `docs/images/` | Example figures from the simulator. This README uses them. |
 
+## Requirements
+
+MATLAB R2024a or later with these toolboxes (check with `ver`):
+
+- `visualSlamDemo.m`: Computer Vision Toolbox, Image Processing Toolbox, **Navigation Toolbox**
+- `elegooMappingTemplate.m`, `ElegooSimCar.m`, `calibrateElegooCamera.m`: Computer Vision Toolbox, Image Processing Toolbox
+
 ## What is visual SLAM?
 
 **SLAM** means *Simultaneous Localization And Mapping*. A robot in an unknown room has two questions:

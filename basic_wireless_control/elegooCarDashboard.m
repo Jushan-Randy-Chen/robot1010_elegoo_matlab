@@ -1,8 +1,6 @@
 function elegooCarDashboard()
     % ELEGOO Smart Robot Car Dashboard & Control UI
-    % Connects using the provided ElegooRobotCar class framework.
 
-    % --- 1. Connection Setup ---
     hostIP = '192.168.4.1'; % Default AP mode IP for Elegoo ESP32
     try
         robot = ElegooRobotCar(hostIP);
@@ -17,7 +15,6 @@ function elegooCarDashboard()
     % State flag for the continuous pan sweep
     sweepActive = false;
 
-    % --- 2. Create Main UI Figure & Layout ---
     fig = uifigure('Name', 'Elegoo Robot Car Control & Sensor Dashboard', 'Position', [30, 30, 1350, 900]);
     
     mainGrid = uigridlayout(fig, [1, 2]);
@@ -29,7 +26,6 @@ function elegooCarDashboard()
     rightGrid = uigridlayout(mainGrid, [2, 1]);
     rightGrid.RowHeight = {'2.5x', '2.5x'};
 
-    % ==================== SENSOR VISUALIZATION PANEL (Enlarged Plots) ====================
     sensorPanel = uipanel(leftGrid, 'Title', 'Real-Time Sensor Readings & Camera');
     sensorGrid = uigridlayout(sensorPanel, [1, 4]);
 
@@ -45,7 +41,6 @@ function elegooCarDashboard()
     axCam = uiaxes(sensorGrid); title(axCam, 'Camera Feed');
     axis(axCam, 'off');
 
-    % ==================== DRIVE CONTROL PANEL (Enlarged Arrow Buttons) ====================
     drivePanel = uipanel(leftGrid, 'Title', 'Drive Control & Teleoperation');
     driveGrid = uigridlayout(drivePanel, [1, 2]);
     driveGrid.ColumnWidth = {'1x', '1.2x'};
@@ -95,7 +90,6 @@ function elegooCarDashboard()
     pulseInput = uieditfield(teleopGrid, 'numeric', 'Value', 0.2, 'Limits', [0.01, 1.0]);   % the 1 s watchdog stops longer pulses
     pulseInput.Layout.Column = [2, 3];
 
-    % ==================== SCANNING CONFIGURATION PANEL ====================
     scanPanel = uipanel(rightGrid, 'Title', 'Scanning Configuration');
     scanGrid = uigridlayout(scanPanel, [3, 2]);
 
@@ -114,7 +108,6 @@ function elegooCarDashboard()
     uipanel(scanGrid, 'BackgroundColor', [0.94 0.94 0.94]);
     uipanel(scanGrid, 'BackgroundColor', [0.94 0.94 0.94]);
 
-    % ==================== DATA & SNAPSHOT WORKSPACE PANEL ====================
     dataPanel = uipanel(rightGrid, 'Title', 'Data Logging & Snapshots');
     dataGrid = uigridlayout(dataPanel, [3, 1]);
 
@@ -127,7 +120,6 @@ function elegooCarDashboard()
     uibutton(dataGrid, 'Text', 'Take UI Window Snapshot (PNG)', ...
         'ButtonPushedFcn', @(~,~) takeUISnapshot(fig));
 
-    % --- Data Buffers for Real-Time Plotting ---
     maxPoints = 50;
     timeBuffer = zeros(1, maxPoints);
     gyroBuffer = zeros(1, maxPoints);
@@ -135,7 +127,6 @@ function elegooCarDashboard()
     rangeBuffer = zeros(1, maxPoints);
     lineBuffer  = zeros(1, maxPoints);
     
-    % --- Background Polling Timer for Sensors ---
     sensorTimer = timer('Period', 0.5, 'ExecutionMode', 'fixedRate', ...
         'TimerFcn', @(~,~) updateSensors());
     start(sensorTimer);
@@ -143,7 +134,6 @@ function elegooCarDashboard()
     % Ensure cleanup when UI closes
     fig.CloseRequestFcn = @(~,~) closeUI(fig, sensorTimer, robot);
 
-    % --- Nested Callback Functions ---
     function updateSensors()
         try
             imuData = robot.readIMU();
@@ -191,7 +181,6 @@ function elegooCarDashboard()
 
     function executeTimedDrive()
         % Differential drive in PWM units: left = v - turn, right = v + turn.
-        % turn is a PWM difference, not rad/s. Use driveCircle to measure deg/s.
         left = round(max(min(vInput.Value - turnInput.Value, 255), -255));
         right = round(max(min(vInput.Value + turnInput.Value, 255), -255));
         timerObj = tic;

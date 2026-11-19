@@ -1,10 +1,7 @@
 function edgeHuggingMapperUI()
     % ELEGOO Smart Robot Car - Perpetual Edge Crawler UI
-    % Connects using the provided ElegooRobotCar class framework.
 
-    % --- 1. Connection Setup ---
-    % Find ElegooRobotCar.m. In the course repository, it is in the
-    % basic_wireless_control folder.
+    % Find ElegooRobotCar.m.
     if exist("ElegooRobotCar", "file") ~= 2
         addpath(fullfile(fileparts(mfilename("fullpath")), "..", "basic_wireless_control"));
     end
@@ -21,7 +18,6 @@ function edgeHuggingMapperUI()
 
     isRoutineRunning = false;
 
-    % --- 2. Create Main UI Figure & Layout ---
     fig = uifigure('Name', 'Elegoo Robot Car - Perpetual Edge Crawler', 'Position', [50, 50, 1100, 750]);
     
     mainGrid = uigridlayout(fig, [1, 2]);
@@ -33,7 +29,6 @@ function edgeHuggingMapperUI()
     rightGrid = uigridlayout(mainGrid, [2, 1]);
     rightGrid.RowHeight = {'2.5x', '2.5x'};
 
-    % ==================== SENSOR & STATUS PANEL ====================
     sensorPanel = uipanel(leftGrid, 'Title', 'Live Sensors & Crawler Status');
     sensorGrid = uigridlayout(sensorPanel, [1, 2]);
 
@@ -43,7 +38,6 @@ function edgeHuggingMapperUI()
     statusTextArea = uitextarea(sensorGrid, 'Editable', 'off', ...
         'Value', ["System Ready.", "Click 'Start Edge Hugging' to begin perpetual edge crawl."]);
 
-    % ==================== AUTOMATED ROUTINE CONTROL PANEL ====================
     controlPanel = uipanel(leftGrid, 'Title', 'Perimeter Crawler Controls');
     controlGrid = uigridlayout(controlPanel, [5, 2]);
 
@@ -66,7 +60,6 @@ function edgeHuggingMapperUI()
         'ButtonPushedFcn', @(~,~) stopRoutine());
     stopRoutineBtn.Layout.Column = [1, 2];
 
-    % ==================== SIDE INFO & MANUAL OVERRIDE ====================
     infoPanel = uipanel(rightGrid, 'Title', 'Routine Configuration & Info');
     infoGrid = uigridlayout(infoPanel, [3, 1]);
 
@@ -116,7 +109,6 @@ function edgeHuggingMapperUI()
                 consecutiveEdgeCount = 0;
                 requiredConsecutive = 2;
                 
-                % ---------------- 1. DRIVE FORWARD TO EDGE ----------------
                 while isRoutineRunning
                     robot.forward(speed);
                     
@@ -156,13 +148,11 @@ function edgeHuggingMapperUI()
 
                 if ~isRoutineRunning, break; end
 
-                % ---------------- 2. STOP AT EDGE ----------------
                 robot.stop();
                 pause(0.2);
 
                 if ~isRoutineRunning, break; end
 
-                % ---------------- 3. BACK UP ----------------
                 logMsg('Backing up from edge...');
                 tBack = tic;
                 while isRoutineRunning && toc(tBack) < 0.5
@@ -174,7 +164,6 @@ function edgeHuggingMapperUI()
 
                 if ~isRoutineRunning, break; end
 
-                % ---------------- 4. TURN LEFT SLIGHTLY ----------------
                 logMsg('Turning left slightly...');
                 tTurn = tic;
                 while isRoutineRunning && toc(tTurn) < leftTurnDuration

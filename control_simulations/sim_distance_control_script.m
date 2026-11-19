@@ -1,8 +1,4 @@
 %
-% sim_distance_control.m
-%
-% purpose: simulating distance control
-%
 
 % initialization
 

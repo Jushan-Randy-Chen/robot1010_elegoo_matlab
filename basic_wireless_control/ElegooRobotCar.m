@@ -1,9 +1,8 @@
 classdef ElegooRobotCar < handle
     % MATLAB client for the custom ELEGOO Smart Robot Car V4 firmware.
-    % Arduino commands use TCP port 100; ESP32 HTTP endpoints use port 80.
 
     properties (Constant)
-        % Car setup. Check these once on a real car with checkCar.m.
+        % Car setup.
         SwapSides = true    % true: the firmware "left" value (PWMA) drives the RIGHT wheels
         PhotoSize = 8       % ESP32 frame size: 8 = 400x296, 6 = 320x240. Do not use 10 (640x480):
                             % the camera then sends colored stripes (garbage photos).
@@ -191,10 +190,6 @@ classdef ElegooRobotCar < handle
 
         function frame = capture(obj)
             % Return one JPEG frame as a MATLAB image array.
-            % Photo address: http://<car IP>/capture (default http://192.168.4.1/capture).
-            % Sometimes the camera makes a bad photo (for example, the first
-            % photos after a size change). MATLAB then gives a "Corrupt JPEG
-            % data" warning. We hide that warning, wait a little, and try again.
             jpegWarning = "MATLAB:imagesci:jpg:libraryMessage";
             oldState = warning("off", jpegWarning);
             restoreWarning = onCleanup(@() warning(oldState));
@@ -214,9 +209,6 @@ classdef ElegooRobotCar < handle
 
         function url = streamURL(obj)
             % Live video address: http://<car IP>/stream (default http://192.168.4.1/stream).
-            % Open it in a web browser while your computer is on the car Wi-Fi.
-            % Close it before you take photos: while the stream is open, the
-            % car cannot send /capture photos.
             url = obj.HttpBase + "/stream";
         end
 

@@ -2,18 +2,6 @@ function result = driveUntilObstacle(robot, stopDistanceCm, speed, maxDurationSe
 % DRIVEUNTILOBSTACLE  Drive forward until the sonar sees a near object.
 %   result = driveUntilObstacle(robot)                 % 25 cm, speed 100, 20 s
 %   result = driveUntilObstacle(robot, 25, 100, 20)
-% This is on-off control: the car drives at one speed, then it stops.
-%
-% The sonar sends 0 when it receives no echo. Two different causes give 0:
-%   - nothing is within about 5 m (the path is clear), or
-%   - an object is nearer than about 3 cm, or its surface is soft or
-%     at an angle (the path is NOT clear).
-% Thus 0 is "unknown". The code uses the last good reading to decide:
-%   - last good reading far (more than 2 x stopDistanceCm): continue.
-%   - last good reading near: stop. This is the safe decision.
-%   - no good reading yet: continue. Make sure that the path is
-%     clear before you start.
-% result.reason is "obstacle", "noEchoNear" or "timeout".
 
 if nargin < 2 || isempty(stopDistanceCm)
     stopDistanceCm = 25;
@@ -65,7 +53,7 @@ while toc(timer) < maxDurationSec
         end
     elseif ~isnan(lastGoodCm) && lastGoodCm <= nearLimitCm
         % No echo, and the last good reading was near: the object can be
-        % too near for the sonar. Stop.
+        % too near for the sonar.
         result.reason = "noEchoNear";
         robot.stop();
         fprintf("Stopping: no echo, and the last good reading was %.0f cm.\n", ...

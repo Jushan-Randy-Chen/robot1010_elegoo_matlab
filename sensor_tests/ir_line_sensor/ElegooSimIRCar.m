@@ -1,20 +1,6 @@
 classdef ElegooSimIRCar < handle
     % Simulated IR line-tracking sensors of the ELEGOO Smart Robot Car V4.
-    % It answers the IR commands of ElegooRobotCar (readIR, setIRThreshold,
-    % state, allSensors) with the same JSON fields as the course firmware,
-    % so irSensorTest and irLiveMonitor run without a car. The car stands
-    % still: drive commands are accepted and ignored.
-    %
-    % Reading model (10-bit ADC, 0..1023): a light floor reflects IR and reads
-    % low, black tape reads higher, and a lifted car (or a table edge) gets no
-    % reflection and reads near the top. The firmware sets onLine = ir > threshold.
-    %
-    % Example:
     %   robot = ElegooSimIRCar();
-    %   robot.setSurface("black");                   % all three sensors
-    %   robot.readIR()
-    %   robot.setSurface(["light" "black" "light"]); % one surface per sensor
-    %   robot.setSurface("track");                   % a tape strip slides under the sensors
     %   robot = ElegooSimIRCar("StuckSensor", 2);    % fault: middle sensor reads a fixed value
 
     properties
@@ -52,7 +38,6 @@ classdef ElegooSimIRCar < handle
             obj.Clock = tic;
         end
 
-        % ---------------- Sim-only ----------------
         function setSurface(obj, surface)
             % "light", "black", "lifted" or "track", for all sensors, or a
             % 1x3 string array with one of "light", "black", "lifted" per sensor.
@@ -70,7 +55,6 @@ classdef ElegooSimIRCar < handle
             obj.Surface = surface;
         end
 
-        % ---------------- Same API as ElegooRobotCar ----------------
         function response = readIR(obj)
             obj.wait();
             [ir, onLine] = obj.sample();

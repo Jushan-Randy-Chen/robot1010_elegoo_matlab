@@ -1,54 +1,12 @@
 function results = visualSlamDemo(source, options)
 % VISUALSLAMDEMO  Visual SLAM with the ELEGOO Smart Robot Car V4 (camera + ultrasonic).
-%
 %   visualSlamDemo()                  real car at 192.168.4.1
 %   visualSlamDemo("sim")             simulated living room, no car needed
 %   visualSlamDemo("vslamRun_...")    replay a saved run folder
 %   r = visualSlamDemo("sim", AutoRun=true, ShowUI=false)   run without clicking or windows
 %   visualSlamDemo("robot", Config=struct("circleInner", 120))   change a setting
-%
-% WHAT IS VISUAL SLAM?
-%   SLAM = Simultaneous Localization And Mapping: the car builds a map of the
-%   room and, at the same time, works out where it is in that map. "Visual":
-%   the camera is the sensor. MATLAB's monovslam (Computer Vision Toolbox):
-%     - finds ORB corners in every photo and matches them with earlier photos
-%     - triangulates matched corners into 3-D map points
-%     - estimates the camera pose of each key frame (bundle adjustment)
-%     - recognizes a place it has seen before and closes the loop
-%     - relocalizes: finds itself in the map again after it got lost
-%
-% WHAT THE CAR DOES ('Start Auto Run')
-%   1. Start the map: 4 steps forward, 4 back. One camera must see the scene
-%      from two places (parallax) to measure depth. If there is no map after
-%      4 photos, SLAM restarts from the newest photo and the car tries again.
-%   2. Circle: a big gentle circle (~1.25 turns). The camera looks across the
-%      room, and returning to the start lets SLAM close the loop. The car has
-%      no wheel encoders, so SLAM measures how far it has turned.
-%   3. Scale: one camera cannot tell 1 m from 1 cm. The car backs away from the
-%      nearest obstacle and drives straight back at it; the ultrasonic range
-%      changes by exactly the distance driven, which converts the map to meters.
-%   4. Map: top view of the path and map points, and an occupancy grid
-%      (free / occupied / unknown) built from map points and sonar beams.
-%   Lost tracking? The car retraces its last steps until SLAM finds itself
-%   (relocalization). Lost again at the same place on the circle? It drives on
-%   past it, and SLAM recognizes the already-mapped part of the room.
-%
-% FOR THE REAL CAR
-%   - Run calibrateElegooCamera once (focal length and lens distortion).
-%   - Start in the middle of an open floor area at least 2.5 m across, in a room
-%     with furniture, posters or boxes. Blank walls and glossy floors give the
-%     camera nothing to track. If the circle is too big, lower 'Circle inner PWM'.
-%   - The car moves in short stop-and-go steps (motor pulse, stop, photo): the
-%     ESP32 camera is slow and blurs while moving, and there are no encoders.
-%   - Camera addresses (connect your computer to the car Wi-Fi first):
-%       live video:   http://192.168.4.1/stream    (open it in a web browser)
-%       one photo:    http://192.168.4.1/capture
-%     Close the /stream page before you run this demo. While the stream is
-%     open, the car cannot send photos to MATLAB.
-%   - Each run saves a vslamRun_<date>_<time> folder: the photos (frames),
-%     debug.txt (settings, car info, messages, errors) and steps.csv (one line
-%     per step: photo check, battery, corners, SLAM status). If something goes
-%     wrong, look there first.
+% Requires MATLAB R2024a or newer with the Computer Vision, Image Processing
+% and Navigation Toolboxes.
 
 arguments
     source (1,1) string = "robot"
@@ -64,8 +22,8 @@ for name = string(fieldnames(options.Config))'
     cfg.(name) = options.Config.(name);
 end
 isReplay = ~any(source == ["robot", "sim"]);
+checkToolboxes();
 
-% --- 1. Run folder with the debug log, then connect and check the sensors ---
 runDir = "";
 runTimer = tic;
 if ~isReplay
@@ -87,8 +45,7 @@ try
         if source == "sim"
             robot = ElegooSimCar();
         else
-            % Find ElegooRobotCar.m. In the student kit, it is in this folder. In the
-            % course repository, it is in the basic_wireless_control folder.
+            % Find ElegooRobotCar.m.
             if exist("ElegooRobotCar", "file") ~= 2
                 addpath(fullfile(fileparts(mfilename("fullpath")), "..", "basic_wireless_control"));
             end
@@ -110,13 +67,11 @@ catch ME
 end
 cleanupObj = onCleanup(@() safeClose(robot));
 
-% --- 2. Visual SLAM object (photos are undistorted and resized to 640x480) ---
 slamK = scaleIntrinsics(cameraIntrinsics(camK.FocalLength, camK.PrincipalPoint, camK.ImageSize), ...
     cfg.workSize);
 vslam = monovslam(slamK, MaxNumPoints = cfg.maxPoints, TrackFeatureRange = cfg.trackFeatureRange, ...
     LoopClosureThreshold = cfg.loopClosureThreshold);
 
-% --- 3. Run state (shared with the nested functions below) ---
 maxSteps = cfg.maxSteps;
 if isReplay, maxSteps = height(replay.runLog); end
 runLog = table('Size', [maxSteps 3], 'VariableTypes', ["string", "double", "string"], ...
@@ -143,7 +98,6 @@ if ~isReplay
     rangeCm = readRange(robot);
 end
 
-% --- 4. Dashboard (same layout style as the other demos) ---
 fig = uifigure('Name', "Elegoo Robot Car - Visual SLAM (" + source + ")", ...
     'Position', [40, 40, 1300, 820], 'Visible', options.ShowUI);
 mainGrid = uigridlayout(fig, [1, 2]);
@@ -221,9 +175,7 @@ if options.AutoRun
     end
 end
 
-    % =================================================================
     % Nested functions: they share the run state above
-    % =================================================================
     function runAuto()
         if isRunning || isBusy, return; end
         isRunning = true;
@@ -258,10 +210,7 @@ end
     function action = nextAction()
         % The auto run as a short list of rules, checked in order.
 
-        % Lost? First retrace the last steps (undo them) until SLAM finds itself.
-        % Lost again on the circle, or retracing did not help: that spot has too
-        % little texture, so drive on past it; SLAM recognizes the mapped part
-        % of the room later.
+        % Lost: retrace the last steps; if that fails on the circle, drive on past the spot.
         if mapStarted && lostCount >= cfg.lostPhotos
             driveOn = phase == "circle" && (relocalizations >= 1 || retraced >= cfg.maxRetrace);
             if driveOn && skipped < cfg.maxSkipSteps
@@ -304,8 +253,7 @@ end
 
         switch phase
             case "start"
-                % 4 steps forward, 4 back, ... until SLAM has a map. After 24
-                % photos without a map, turn a little to face a new scene.
+                % 4 steps forward, 4 back, ...
                 cycle = mod(k, 24);
                 if cycle >= 24 - cfg.newViewSteps
                     action = "arcLeft";
@@ -322,7 +270,7 @@ end
                 end
             case "scale"
                 % Back away to get a run-up (the path behind is known to be free),
-                % then drive straight in to 50 cm. Both straight runs give the scale.
+                % then drive straight in to 50 cm.
                 if ~backedUp && rangeCm < cfg.scaleStartCm && scaleSteps < cfg.maxScaleSteps
                     scaleSteps = scaleSteps + 1;
                     action = "backward";
@@ -343,7 +291,7 @@ end
     end
 
     function ok = takeStep(action)
-        % One stop-and-go step: move, stop, photo, sonar, SLAM. False on error.
+        % One stop-and-go step: move, stop, photo, sonar, SLAM.
         ok = false;
         isBusy = true;
         try
@@ -383,11 +331,8 @@ end
             trail(end+1) = action;                  % remember the step for retracing
         end
 
-        % ---- Visual SLAM ----
         img = imresize(undistort(frame, camK), cfg.workSize);
-        % The ESP32 photos are pale and soft. Stronger local contrast (CLAHE)
-        % gives about 3x more corners; monovslam needs cfg.maxPoints corners in
-        % a photo before it can start a map.
+        % The ESP32 photos are pale and soft.
         slamImg = adapthisteq(im2gray(img));
         corners = detectORBFeatures(slamImg);
         waitTimer = tic;                        % wait until SLAM finishes this photo
@@ -397,15 +342,12 @@ end
         end
         slamSec = toc(waitTimer);
 
-        % No map after one sweep (4 forward, 4 back)? SLAM keeps comparing new
-        % photos with its first photo, and they now share too few corners: start
-        % over from here.
+        % No map after one sweep (4 forward, 4 back)?
         if ~mapStarted
             if numel(poses(vslam)) > 1
                 mapStarted = true;
             elseif k - photosBeforeMap >= 2 * cfg.startSweep
-                % Start over with a new SLAM object. (Do not use reset(vslam):
-                % after it, isDone never turns true and each photo waits 20 s.)
+                % Start over with a new SLAM object.
                 delete(vslam);
                 vslam = monovslam(slamK, MaxNumPoints = cfg.maxPoints, ...
                     TrackFeatureRange = cfg.trackFeatureRange, ...
@@ -528,16 +470,26 @@ end
     end
 end
 
-% =====================================================================
 % Settings (change them here, or with Config=struct(...))
-% =====================================================================
+function checkToolboxes()
+% Stop with a clear message if a required toolbox is missing.
+needs = ["monovslam", "Computer Vision Toolbox (R2024a or newer)"
+         "adapthisteq", "Image Processing Toolbox"
+         "occupancyMap", "Navigation Toolbox"];
+missing = needs(arrayfun(@(f) exist(f, "file") == 0, needs(:, 1)), 2);
+if ~isempty(missing)
+    error("visualSlamDemo:missingToolbox", "Install these MATLAB add-ons, then run again:\n  %s", ...
+        strjoin(missing, newline + "  "));
+end
+end
+
 function cfg = defaultConfig()
 cfg.intrinsicsFile = fullfile(fileparts(mfilename("fullpath")), "elegooCameraIntrinsics.mat");   % from calibrateElegooCamera
 cfg.guessFovDeg = 60;          % lens guess if there is no calibration file
 cfg.workSize = [480 640];      % photos are resized to this for SLAM
 cfg.cameraHeightM = 0.12;      % lens height above the floor (measure yours)
 
-% Stop-and-go steps: [left PWM, right PWM, seconds]. Undo = same with -PWM.
+% Stop-and-go steps: [left PWM, right PWM, seconds].
 cfg.forwardSpeed = 100;        % forward/backward PWM (dashboard field)
 cfg.forwardSec = 0.30;         % ~5-8 cm per step
 cfg.arc = [100 160 0.10];      % manual arcs: ~6 deg per step
@@ -576,11 +528,9 @@ cfg.obstacleHeightM = [0.04 0.80];  % map points this high above the floor are o
 cfg.cellsPerMeter = 20;        % occupancy grid: 5 cm cells
 end
 
-% =====================================================================
 % Car I/O
-% =====================================================================
 function move(robot, action, speed, circleInner, cfg)
-% Stop-and-go step. "undo:<step>" runs <step> with both wheels reversed.
+% Stop-and-go step.
 undo = startsWith(action, "undo:");
 name = erase(action, "undo:");
 v = round(speed);
@@ -601,8 +551,7 @@ end
 
 function [frame, photo] = grabFrame(robot, cfg)
 % The ESP32 camera sometimes turns the lower part of a photo into colored
-% stripes, and MATLAB does not notice. The car stands still here, so two good
-% photos in a row look the same. Take photos until two in a row agree.
+% stripes, and MATLAB does not notice.
 timer = tic;
 frame = capturePhoto(robot);
 difference = NaN;
@@ -630,7 +579,6 @@ end
 
 function d = photoDifference(a, b)
 % How different two photos are (0 = the same), in the worst band of 16 rows.
-% Only color counts, so a change in brightness (auto exposure) does not.
 a = im2single(a);
 b = im2single(b);
 ca = a - mean(a, 3);
@@ -681,8 +629,7 @@ writelines("[" + string(datetime("now", "Format", "HH:mm:ss.SSS")) + "] " + text
 end
 
 function r = readRange(robot)
-% Whole cm, NaN if no reply. The firmware sends 0 for no echo (nothing in
-% range): use 150 cm, the same value as the simulator.
+% Whole cm, NaN if no reply.
 r = NaN;
 try
     reply = robot.readDistance();
@@ -739,9 +686,7 @@ catch
 end
 end
 
-% =====================================================================
 % Camera geometry
-% =====================================================================
 function K = scaleIntrinsics(K, imageSize)
 % Same camera, different image size.
 if isequal(K.ImageSize, imageSize), return; end
@@ -762,9 +707,7 @@ fwd = pose.R(:, 3);
 deg = atan2d(-fwd(1), fwd(3));
 end
 
-% =====================================================================
 % Building the map
-% =====================================================================
 function [res, msgs, fh] = buildMap(vslam, photosBeforeMap, log, slamK, cfg, showUI)
 fh = [];
 [camPoses, kfPhotos] = poses(vslam);
@@ -820,8 +763,7 @@ end
 
 function [cmPerUnit, nRuns] = sonarScale(C, kfPhotos, log, cfg)
 % While the car drives straight toward (or away from) something, the range
-% changes 1 cm per cm driven. On each straight drive, fit range vs SLAM
-% distance: the slope is cm per SLAM unit.
+% changes 1 cm per cm driven.
 slopes = [];
 weights = [];
 act = log.action;
@@ -958,9 +900,7 @@ end
 close(v);
 end
 
-% =====================================================================
 % Replay
-% =====================================================================
 function replay = loadRun(runDir)
 data = load(fullfile(runDir, "vslamRun.mat"), "log", "intrinsics");
 files = dir(fullfile(runDir, "frames", "frame_*.jpg"));

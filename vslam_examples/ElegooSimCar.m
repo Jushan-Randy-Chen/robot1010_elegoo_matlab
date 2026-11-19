@@ -1,18 +1,6 @@
 classdef ElegooSimCar < handle
     % Simulated ELEGOO Smart Robot Car V4 with the same methods as ElegooRobotCar.
-    % The car drives in a furnished 5 m x 4 m living room / study (wood floor,
-    % rug, bookshelf, desk with thin legs, sofa, TV console, wardrobe, door,
-    % window with curtains, cardboard boxes). The camera view is rendered with
-    % MATLAB graphics; the ultrasonic sensor is ray-cast against the furniture
-    % footprints. Textures: simAssets/README.txt.
-    %
-    % World frame: x east, y north, z up (meters). Pose = [x y heading(rad)].
-    %
-    % Example:
     %   robot = ElegooSimCar();
-    %   robot.drive(100, 100); pause(0.3); robot.stop();
-    %   imshow(robot.capture());
-    %   imshow(robot.snapshot([0.3 0.3 2.0], [3 2.5 0]))   % free camera view
 
     properties (SetAccess = private)
         Pose = [2.6 1.15 0]           % [x y theta] of the wheel-axle center (open middle of the room)
@@ -52,8 +40,6 @@ classdef ElegooSimCar < handle
     methods
         function obj = ElegooSimCar(varargin)
             % Optional name-value pairs set properties, e.g. ElegooSimCar("Pose", [1 1 0]).
-            % Demos that create the car themselves pick up
-            % setappdata(groot, "ElegooSimCarOptions", {...}).
             if isappdata(groot, "ElegooSimCarOptions")
                 varargin = [getappdata(groot, "ElegooSimCarOptions"), varargin];
             end
@@ -67,7 +53,6 @@ classdef ElegooSimCar < handle
             obj.LastCommand = tic;
         end
 
-        % ---------------- Same API as ElegooRobotCar ----------------
         function response = drive(obj, left, right)
             obj.advance();
             obj.LeftPwm = max(min(round(left), 255), -255);
@@ -115,8 +100,7 @@ classdef ElegooSimCar < handle
         end
 
         function response = pan(obj, angle)
-            % Camera and sonar share the pan mount. 90 = straight ahead; in this
-            % sim, larger angles look left (the real servo may be mirrored).
+            % Camera and sonar share the pan mount.
             obj.advance();
             obj.PanDeg = max(10, min(170, angle));
             response = struct("ok", true);
@@ -124,10 +108,6 @@ classdef ElegooSimCar < handle
 
         function response = readDistance(obj)
             % HC-SR04 range in whole cm, capped at 150 cm like the stock firmware.
-            % The beam is roughly 15 degrees wide, so cast several rays. Sound
-            % bounces away from a surface hit at more than ~45 degrees, so such a
-            % surface gives no echo and the sensor reads "far" (150 cm). Thin
-            % desk and chair legs can slip between the rays, as they do in reality.
             obj.advance();
             [origin, heading] = obj.sensorOrigin();
             ranges = 10 * ones(1, 7);
@@ -206,7 +186,6 @@ classdef ElegooSimCar < handle
     end
 
     methods (Access = private)
-        % ---------------- Motion and sensors ----------------
         function advance(obj)
             % Move the car with the current wheel PWM since the last update.
             dt = toc(obj.LastUpdate);
@@ -279,7 +258,6 @@ classdef ElegooSimCar < handle
             end
         end
 
-        % ---------------- Rendering ----------------
         function frame = render(obj, camPos, camTarget, viewAngle)
             obj.Ax.CameraPosition = camPos;
             obj.Ax.CameraTarget = camTarget;
@@ -287,8 +265,6 @@ classdef ElegooSimCar < handle
             obj.Ax.CameraViewAngle = viewAngle;
             % Render at 2x and shrink: this smooths texture aliasing the way a
             % real lens blurs fine detail, so features stay stable between frames.
-            % Grab the figure, not the axes: on a Mac Retina screen getframe(axes)
-            % gives only one zoomed corner of the view.
             frame = imresize(getframe(obj.Fig).cdata, obj.ImageSize, "Antialiasing", true);
         end
 
@@ -300,7 +276,6 @@ classdef ElegooSimCar < handle
             a = 2 * atand((min(rows, cols) / 2) / f);
         end
 
-        % ---------------- The room ----------------
         function buildRoom(obj)
             W = obj.RoomSize(1);
             D = obj.RoomSize(2);
@@ -328,7 +303,6 @@ classdef ElegooSimCar < handle
             metal = ElegooSimCar.solid([70 70 75], 6);
             black = ElegooSimCar.solid([25 25 28], 4);
 
-            % ---- Floor, rug, walls, baseboards ----
             obj.quad([0 0 0; W 0 0; W D 0; 0 D 0], obj.tile(woodFloor, [D W], 0.62, true));
             obj.quad([1.9 1.5 0.004; 3.7 1.5 0.004; 3.7 2.5 0.004; 1.9 2.5 0.004], ...
                 ElegooSimCar.withBorder(obj.tile(carpet, [1.0 1.8], 0.5), [110 70 60], 0.06, 400));
@@ -348,7 +322,6 @@ classdef ElegooSimCar < handle
             obj.quad([2.6 D-0.006 0.25; 2.67 D-0.006 0.25; 2.67 D-0.006 0.36; 2.6 D-0.006 0.36], outlet);
             obj.quad([0.006 1.25 0.25; 0.006 1.32 0.25; 0.006 1.32 0.36; 0.006 1.25 0.36], outlet);
 
-            % ---- South wall: wardrobe (west), door, low shoe cabinet (east) ----
             obj.box([0.7 0 1.9 0.6 0 2.0], struct("default", obj.tile(woodLight, [0.6 0.6], 0.6), ...
                 "yp", ElegooSimCar.cabinetFront(obj.tile(woodLight, [2.0 1.2], 0.6), 2, 1, true, 400)), true);
             obj.quad([3.2 0.004 0; 2.3 0.004 0; 2.3 0.004 2.05; 3.2 0.004 2.05], ...
@@ -356,7 +329,6 @@ classdef ElegooSimCar < handle
             obj.box([3.5 0 4.4 0.4 0 0.55], struct("default", obj.tile(woodMedium, [0.4 0.4], 0.5), ...
                 "yp", ElegooSimCar.cabinetFront(obj.tile(woodMedium, [0.55 0.9], 0.5), 1, 3, false, 400)), true);
 
-            % ---- East wall: TV console + TV, window with curtains ----
             obj.box([4.65 1.0 W 2.6 0 0.5], struct("default", obj.tile(woodMedium, [0.5 0.5], 0.5), ...
                 "xm", ElegooSimCar.cabinetFront(obj.tile(woodMedium, [0.5 1.6], 0.5), 2, 3, false, 400), ...
                 "top", obj.tile(woodDark, [0.35 1.6], 0.5)), true);
@@ -370,7 +342,6 @@ classdef ElegooSimCar < handle
             obj.quad([W-0.012 4.0 0.03; W-0.012 3.7 0.03; W-0.012 3.7 2.3; W-0.012 4.0 2.3], ...
                 obj.tile(curtain, [2.27 0.3], 0.3));
 
-            % ---- North wall: desk with thin legs, PC, chair (east), bookshelf (west) ----
             obj.box([3.3 3.4 4.6 D 0.72 0.75], struct("default", obj.tile(woodMedium, [0.6 1.3], 0.6)), false);
             for p = [3.32 3.42; 4.54 3.42; 3.32 3.94; 4.54 3.94]'
                 obj.box([p(1) p(2) p(1)+0.04 p(2)+0.04 0 0.72], struct("default", metal), true);
@@ -387,7 +358,6 @@ classdef ElegooSimCar < handle
             obj.quad([3.55 D-0.006 1.25; 4.4 D-0.006 1.25; 4.4 D-0.006 1.62; 3.55 D-0.006 1.62], ...
                 ElegooSimCar.framed(obj.asset("picture_stonehenge")));
 
-            % ---- West wall: sofa, pictures ----
             obj.box([0.12 1.9 0.85 3.4 0.08 0.42], struct("default", fabric, ...
                 "xp", ElegooSimCar.seams(obj.tile(fabric, [0.34 1.5], 0.4), 3)), true);
             obj.box([0 1.9 0.25 3.4 0.08 0.86], struct("default", fabric), false);
@@ -402,11 +372,9 @@ classdef ElegooSimCar < handle
             obj.quad([0.006 2.8 1.0; 0.006 3.25 1.0; 0.006 3.25 1.42; 0.006 2.8 1.42], ...
                 ElegooSimCar.framed(obj.asset("picture_meerkat")));
 
-            % ---- South-west corner: cardboard boxes ----
             obj.box([0.08 0.08 0.55 0.5 0 0.4], ElegooSimCar.cardboard("FRAGILE"), true);
             obj.box([0.13 0.12 0.47 0.44 0.4 0.62], ElegooSimCar.cardboard("THIS SIDE UP"), false);
 
-            % ---- Everyday clutter near the floor (what a low camera mostly sees) ----
             pattern = ElegooSimCar.matlabImage("fabric.png");
             obj.box([0.25 2.2 0.4 2.6 0.42 0.78], struct("default", pattern), false);       % cushions
             obj.box([0.25 2.7 0.4 3.1 0.42 0.78], struct("default", fliplr(pattern)), false);
@@ -422,7 +390,6 @@ classdef ElegooSimCar < handle
             obj.box([2.62 0.06 2.75 0.34 0 0.1], struct("default", ElegooSimCar.solid([235 235 235], 10), ...
                 "top", ElegooSimCar.solid([40 40 45], 6)), true);
 
-            % ---- Lights (two ceiling lamps) ----
             light(obj.Ax, "Position", [1.6 2.0 2.3], "Style", "local", "Color", [0.55 0.55 0.52]);
             light(obj.Ax, "Position", [3.6 2.0 2.3], "Style", "local", "Color", [0.55 0.55 0.52]);
 
@@ -435,8 +402,7 @@ classdef ElegooSimCar < handle
         end
 
         function quad(obj, corners, tex)
-            % Textured rectangle. corners: 4x3, bottom-left, bottom-right,
-            % top-right, top-left as seen from the side that faces the room.
+            % Textured rectangle.
             X = [corners(1,1) corners(2,1); corners(4,1) corners(3,1)];
             Y = [corners(1,2) corners(2,2); corners(4,2) corners(3,2)];
             Z = [corners(1,3) corners(2,3); corners(4,3) corners(3,3)];
@@ -446,8 +412,7 @@ classdef ElegooSimCar < handle
         end
 
         function box(obj, b, tex, blocksSonar)
-            % Box b = [x0 y0 x1 y1 z0 z1]. tex has optional fields xm, xp, ym, yp,
-            % top (one image per face) and default.
+            % Box b = [x0 y0 x1 y1 z0 z1].
             x0 = b(1); y0 = b(2); x1 = b(3); y1 = b(4); z0 = b(5); z1 = b(6);
             pick = @(f) ElegooSimCar.field(tex, f);
             obj.quad([x0 y0 z0; x1 y0 z0; x1 y0 z1; x0 y0 z1], pick("ym"));   % faces -y
@@ -478,9 +443,6 @@ classdef ElegooSimCar < handle
         function out = tile(~, src, sizeM, tileWidthM, shadeTiles)
             % Cover a sizeM = [h w] surface with copies of src, each tileWidthM
             % wide, at 400 pixels per meter (capped for very large surfaces).
-            % Copies are randomly mirrored and shifted (and, for floor planks,
-            % shaded): exact repeats would confuse feature matching far more
-            % than a real floor or wall does.
             if nargin < 5, shadeTiles = false; end
             pxPerM = min(400, 2400 / max(sizeM));
             tilePx = max(8, round(tileWidthM * pxPerM * [size(src, 1) / size(src, 2), 1]));

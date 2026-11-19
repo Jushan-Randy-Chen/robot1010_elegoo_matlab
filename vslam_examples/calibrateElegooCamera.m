@@ -1,35 +1,8 @@
 function intrinsics = calibrateElegooCamera(squareSizeMm, host)
 % CALIBRATEELEGOOCAMERA  Measure the focal length and the lens distortion of
-% the ESP32 camera. Task 5 of elegooMappingTemplate.m uses these values to
-% change pixels into 3-D directions. (The TA demo visualSlamDemo.m also uses them.) Do this procedure one time for each car.
-%
-% PROCEDURE
 %   1. Make a checkerboard. Type: calibrateElegooCamera("print")
-%      This makes the file checkerboard_print.png (7 x 10 squares) in the
-%      folder of this file.
-%   2. Print the file on one sheet of paper. Select "Shrink to fit"
-%      (Windows) or "Scale to Fit" (Mac). Do not select "Fill". Attach the
-%      paper to a flat, stiff board.
-%   3. Measure one square with a ruler (mm).
-%   4. Connect the computer to the Wi-Fi network of the car.
 %   5. Type: calibrateElegooCamera(squareSizeMm)
 %      Example: calibrateElegooCamera(25)
-%   6. The photo must be upright and not a mirror image. If it is not,
-%      ask your TA (checkCar.m sets the photo direction in ElegooRobotCar.m).
-%   7. Hold the board 20 cm to 60 cm in front of the car. Move and tilt the
-%      board. Put it in all areas of the photo, also in the corners.
-%   8. Click the figure window. The keys work only when this window is
-%      selected. Push SPACE to keep a photo. Keep a photo only when the
-%      corners show in green. Keep 15 to 20 photos.
-%   9. Push C to calibrate. The function saves the result in
-%      elegooCameraIntrinsics.mat in the folder of this file. It saves the
-%      photos in the calibrationImages folder in the same folder.
-%  10. Do not move elegooCameraIntrinsics.mat. elegooMappingTemplate.m finds
-%      it in the same folder.
-%
-% NOTE: ElegooRobotCar sets the photo size (PhotoSize). If you change it,
-%       calibrate again.
-% NOTE: Push Q to stop without a calibration.
 
 if nargin >= 1 && (isstring(squareSizeMm) || ischar(squareSizeMm)) && squareSizeMm == "print"
     writePrintableBoard();
@@ -41,8 +14,7 @@ if nargin < 1 || isempty(squareSizeMm)
 end
 if nargin < 2 || isempty(host), host = "192.168.4.1"; end
 
-% Find ElegooRobotCar.m. In the student kit, it is in this folder. In the
-% course repository, it is in the basic_wireless_control folder.
+% Find ElegooRobotCar.m.
 if exist("ElegooRobotCar", "file") ~= 2
     addpath(fullfile(fileparts(mfilename("fullpath")), "..", "basic_wireless_control"));
 end

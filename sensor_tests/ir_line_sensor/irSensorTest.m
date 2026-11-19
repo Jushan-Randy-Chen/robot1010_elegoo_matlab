@@ -1,27 +1,7 @@
 function report = irSensorTest(robot, options)
 % Guided test of the three IR line-tracking sensors of the ELEGOO V4.
-% The motors stay off for the whole test. Put the car on a light, flat floor
-% and have a strip of matte black electrical tape ready. The test tells you
-% when to move the car.
-%
-%   robot  = ElegooRobotCar("192.168.4.1");   % real car with the course firmware
-%   robot  = ElegooSimIRCar();                % or the simulator (no prompts)
 %   report = irSensorTest(robot);
 %   report = irSensorTest(robot, LiveSeconds=20, SaveFile="irTest.mat");
-%
-% Steps
-%   1 Response format  readIR gives ir (3 ADC counts, 0..1023) and onLine (3 of 0/1)
-%   2 Read rate        readIR is fast enough for line tracking over Wi-Fi
-%   3 onLine rule      the firmware's onLine equals ir > irThreshold
-%   4 Light floor      readings are steady and not stuck at an ADC limit
-%   5 Black line       readings are steady and not stuck at an ADC limit
-%   6 Contrast         black reads higher than light by MinContrast on each sensor
-%   7 Threshold        one threshold separates light and black on all sensors
-%   8 Lifted car       a lifted car (as at a table edge) reads above the threshold
-%   9 Firmware update  setIRThreshold stores the new threshold (lost at power off)
-%
-% report.results has one row per step (PASS, FAIL or SKIP). report.passed is
-% true when no step failed. Sensor order is always [left middle right].
 
 arguments
     robot
@@ -36,7 +16,7 @@ arguments
     options.SaveFile (1,1) string = ""
 end
 
-% The test never drives. Stop old commands and keep the 1 s motor watchdog on.
+% The test never drives.
 robot.stop();
 robot.setWatchdog(1000);
 stopOnExit = onCleanup(@() stopRobotSafely(robot));
@@ -50,7 +30,6 @@ report = struct("results", results, "passed", false, "rateHz", NaN, ...
 
 fprintf("\nIR line sensor test. Sensor order: [left middle right]. Motors stay off.\n");
 
-% ---------------- 1. Response format ----------------
 try
     [ir, onLine] = readSensors(robot);
     results = addResult(results, "Response format", true, ...
@@ -61,7 +40,6 @@ catch problem
     return
 end
 
-% ---------------- 2. Read rate, 3. onLine rule ----------------
 firmwareState = robot.state();
 if isstruct(firmwareState) && isfield(firmwareState, "irThreshold")
     report.firmwareThreshold = double(firmwareState.irThreshold);
@@ -73,7 +51,6 @@ results = addResult(results, "Read rate", report.rateHz >= options.MinRateHz, ..
     report.rateHz, 1000 * elapsed / n, options.MinRateHz));
 results = checkOnLineRule(results, irLog, onLineLog, report.firmwareThreshold);
 
-% ---------------- 4. Light floor, 5. Black line ----------------
 prepare(robot, "light", "Put the car on the LIGHT floor. Keep tape away from the sensors.");
 report.light = measure(robot, n);
 results = checkSurface(results, "Light floor", report.light, options.MaxNoise);
@@ -82,7 +59,6 @@ prepare(robot, "black", "Put BLACK tape under ALL THREE sensors. Hold the car le
 report.black = measure(robot, n);
 results = checkSurface(results, "Black line", report.black, options.MaxNoise);
 
-% ---------------- 6. Contrast, 7. Threshold ----------------
 contrast = report.black.mean - report.light.mean;
 detail = sprintf("black - light = [%.0f %.0f %.0f] counts", contrast);
 reversed = find(contrast < 0);
@@ -126,7 +102,6 @@ else
     end
 end
 
-% ---------------- 8. Lifted car ----------------
 threshold = report.recommendedThreshold;
 if isnan(threshold)
     threshold = report.firmwareThreshold;
@@ -148,7 +123,6 @@ else
     results = addResult(results, "Lifted car", isempty(low), detail);
 end
 
-% ---------------- 9. Firmware update ----------------
 if ~options.ApplyThreshold
     results = addResult(results, "Firmware update", missing, "ApplyThreshold = false");
 elseif isnan(report.recommendedThreshold)
@@ -167,7 +141,6 @@ else
         stored, report.firmwareThreshold));
 end
 
-% ---------------- Optional live check ----------------
 if options.LiveSeconds > 0
     prepare(robot, "track", "LIVE CHECK: slide the black tape slowly under the sensors, left to right.");
     report.live = irLiveMonitor(robot, options.LiveSeconds, ShowFigure=options.ShowFigure);
@@ -176,7 +149,6 @@ end
 report = finish(report, results, options);
 end
 
-% ======================================================================
 
 function [ir, onLine] = readSensors(robot)
 % One readIR call, checked against the course firmware format (N=11).

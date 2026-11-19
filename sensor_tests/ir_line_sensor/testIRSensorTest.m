@@ -1,6 +1,5 @@
 function tests = testIRSensorTest
 % Unit tests for the IR line sensor test module. They use ElegooSimIRCar,
-% so no car is needed. Run: runtests("testIRSensorTest")
 tests = functiontests(localfunctions);
 end
 
@@ -9,7 +8,6 @@ rng(1010, "twister");
 testCase.TestData.options = {"ShowFigure", false, "Samples", 20};
 end
 
-% ---------------- Simulator matches the firmware format ----------------
 
 function testSimulatorResponseFormat(testCase)
 robot = ElegooSimIRCar("ReadDelay", 0);
@@ -28,7 +26,6 @@ verifyError(testCase, @() robot.setSurface("grey"), "ElegooSimIRCar:BadSurface")
 verifyError(testCase, @() robot.setSurface(["track" "light" "light"]), "ElegooSimIRCar:BadSurface");
 end
 
-% ---------------- Line tracker rule ----------------
 
 function testLineTrackerDecision(testCase)
 patterns = [1 1 1; 0 1 0; 1 0 0; 1 1 0; 0 0 1; 0 1 1; 0 0 0; 1 0 1];
@@ -39,7 +36,6 @@ for k = 1:size(patterns, 1)
 end
 end
 
-% ---------------- Full test on a healthy and on faulty sensors ----------------
 
 function testHealthySensorsPass(testCase)
 robot = ElegooSimIRCar("ReadDelay", 0);
@@ -112,7 +108,6 @@ verifyFalse(testCase, report.passed);
 verifyEqual(testCase, height(report.results), 1);
 end
 
-% ---------------- Live monitor ----------------
 
 function testLiveMonitorLogsDecisions(testCase)
 robot = ElegooSimIRCar("ReadDelay", 0, "SweepPeriod", 1);
@@ -124,7 +119,6 @@ verifyEqual(testCase, liveLog.Properties.VariableNames, {'Time', 'IR', 'OnLine',
 verifyEqual(testCase, sort(unique(liveLog.Decision)).', ["forward" "left" "right" "stop"]);
 end
 
-% ---------------- Helpers ----------------
 
 function result = resultOf(report, name)
 result = report.results.Result(report.results.Name == name);

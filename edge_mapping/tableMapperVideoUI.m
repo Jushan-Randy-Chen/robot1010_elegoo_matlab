@@ -1,10 +1,7 @@
 function tableMapperVideoUI()
     % ELEGOO Smart Robot Car - Continuous Table Edge Mapper & Video Recorder UI
-    % Connects using the provided ElegooRobotCar class framework.
 
-    % --- 1. Connection Setup ---
-    % Find ElegooRobotCar.m. In the course repository, it is in the
-    % basic_wireless_control folder.
+    % Find ElegooRobotCar.m.
     if exist("ElegooRobotCar", "file") ~= 2
         addpath(fullfile(fileparts(mfilename("fullpath")), "..", "basic_wireless_control"));
     end
@@ -21,7 +18,6 @@ function tableMapperVideoUI()
 
     isRoutineRunning = false;
 
-    % --- 2. Create Main UI Figure & Layout ---
     fig = uifigure('Name', 'Elegoo Robot Car - Continuous Table Edge Mapper', 'Position', [50, 50, 1100, 750]);
     
     mainGrid = uigridlayout(fig, [1, 2]);
@@ -33,7 +29,6 @@ function tableMapperVideoUI()
     rightGrid = uigridlayout(mainGrid, [2, 1]);
     rightGrid.RowHeight = {'2.5x', '2.5x'};
 
-    % ==================== SENSOR & STATUS PANEL ====================
     sensorPanel = uipanel(leftGrid, 'Title', 'Live Sensors & Routine Status');
     sensorGrid = uigridlayout(sensorPanel, [1, 2]);
 
@@ -43,7 +38,6 @@ function tableMapperVideoUI()
     statusTextArea = uitextarea(sensorGrid, 'Editable', 'off', ...
         'Value', ["System Ready.", "Click 'Start Continuous Mapping' to begin perpetual loop."]);
 
-    % ==================== AUTOMATED ROUTINE CONTROL PANEL ====================
     controlPanel = uipanel(leftGrid, 'Title', 'Mapping Controls');
     controlGrid = uigridlayout(controlPanel, [5, 2]);
 
@@ -66,7 +60,6 @@ function tableMapperVideoUI()
         'ButtonPushedFcn', @(~,~) stopRoutine());
     stopRoutineBtn.Layout.Column = [1, 2];
 
-    % ==================== SIDE INFO & MANUAL OVERRIDE ====================
     infoPanel = uipanel(rightGrid, 'Title', 'Routine Configuration & Info');
     infoGrid = uigridlayout(infoPanel, [3, 1]);
 

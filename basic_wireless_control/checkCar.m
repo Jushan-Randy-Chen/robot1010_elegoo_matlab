@@ -2,9 +2,6 @@ function report = checkCar(host)
 % CHECKCAR  Five-minute hardware check of one ELEGOO car over Wi-Fi.
 %   report = checkCar()                 % car at 192.168.4.1
 %   report = checkCar("192.168.4.1")
-% The function asks yes/no questions in the Command Window. At the end it
-% prints the four setup values for the top of ElegooRobotCar.m.
-% Keep the motor switch OFF until the function asks for it.
 
 if nargin < 1, host = "192.168.4.1"; end
 car = ElegooRobotCar(host);
@@ -129,7 +126,7 @@ end
 end
 
 function yes = ask(question, isYesNo)
-% Ask a question in the Command Window. isYesNo = false: wait for Enter only.
+% Ask a question in the Command Window.
 if nargin < 2, isYesNo = true; end
 if ~isYesNo
     input("   " + question + " ", "s");

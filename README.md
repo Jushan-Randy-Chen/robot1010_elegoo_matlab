@@ -26,7 +26,16 @@ tools/                    makeStudentKit.m (student zip in dist/, not in git)
 ## Requirements
 
 - MATLAB R2024a or later (tested with R2026b) on Windows or macOS. MATLAB Online runs the simulator only, because it cannot reach the car's local Wi-Fi.
-- Computer Vision Toolbox and Image Processing Toolbox (for `vslam_examples`)
+- Toolboxes:
+
+  | Script | Toolboxes |
+  |---|---|
+  | `vslam_examples/visualSlamDemo.m` | Computer Vision, Image Processing, **Navigation** |
+  | `vslam_examples/elegooMappingTemplate.m`, `ElegooSimCar.m`, `calibrateElegooCamera.m` | Computer Vision, Image Processing |
+  | `basic_wireless_control/checkCar.m` | Computer Vision |
+  | All other scripts | MATLAB only |
+
+  Check with `ver` in the Command Window. Install missing ones with **Home > Add-Ons > Get Add-Ons**.
 - For the real car: an ELEGOO Smart Robot Car V4 with the course's custom firmware. `ElegooRobotCar` sends JSON commands over TCP port 100, and the stock firmware does not answer them. The firmware is not in this repository.
 
 ## Quick start
