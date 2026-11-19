@@ -1,10 +1,8 @@
 function edgeHuggingMapperUI()
     % ELEGOO Smart Robot Car - Perpetual Edge Crawler UI
 
-    % Find ElegooRobotCar.m.
-    if exist("ElegooRobotCar", "file") ~= 2
-        addpath(fullfile(fileparts(mfilename("fullpath")), "..", "basic_wireless_control"));
-    end
+    % Use the ElegooRobotCar.m of this repository, not an older copy on the path.
+    addpath(fullfile(fileparts(fileparts(mfilename("fullpath"))), "basic_wireless_control"));
     hostIP = '192.168.4.1'; 
     try
         robot = ElegooRobotCar(hostIP);

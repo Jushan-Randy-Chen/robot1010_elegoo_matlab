@@ -45,10 +45,8 @@ try
         if source == "sim"
             robot = ElegooSimCar();
         else
-            % Find ElegooRobotCar.m.
-            if exist("ElegooRobotCar", "file") ~= 2
-                addpath(fullfile(fileparts(mfilename("fullpath")), "..", "basic_wireless_control"));
-            end
+            % Use the ElegooRobotCar.m of this repository, not an older copy on the path.
+            addpath(fullfile(fileparts(fileparts(mfilename("fullpath"))), "basic_wireless_control"));
             robot = ElegooRobotCar(options.Host);
         end
         robot.stop();

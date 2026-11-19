@@ -14,10 +14,8 @@ if nargin < 1 || isempty(squareSizeMm)
 end
 if nargin < 2 || isempty(host), host = "192.168.4.1"; end
 
-% Find ElegooRobotCar.m.
-if exist("ElegooRobotCar", "file") ~= 2
-    addpath(fullfile(fileparts(mfilename("fullpath")), "..", "basic_wireless_control"));
-end
+% Use the ElegooRobotCar.m of this repository, not an older copy on the path.
+addpath(fullfile(fileparts(fileparts(mfilename("fullpath"))), "basic_wireless_control"));
 robot = ElegooRobotCar(host);
 robot.stop();
 robot.setWatchdog(1000);
